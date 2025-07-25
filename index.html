@@ -6,17 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    * {
+    html, body {
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-
-    html, body {
-      height: 100%;
       font-family: 'Segoe UI', sans-serif;
+      height: 100%;
+      background: black;
       overflow: hidden;
-      background-color: black;
     }
 
     #idle, #avatar {
@@ -25,196 +21,188 @@
       left: 50%;
       transform: translate(-50%, -50%);
       z-index: 0;
-      background: black;
-      filter: brightness(1);
       max-width: 100vw;
       max-height: 100vh;
       width: auto;
       height: auto;
+      filter: brightness(1);
+      background: black;
     }
 
     #avatar {
       display: none;
     }
 
- .overlay {
-    position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1;
-    display: flex;
-    gap: 1.5rem;
-    flex-direction: row;
-    justify-content: center;
-  }
+    .overlay {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      display: flex;
+      gap: 1.5rem;
+    }
 
-  .mic-button {
-    background: linear-gradient(to bottom right, #00ff9d, #00c76d);
-    color: white;
-    border: none;
-    padding: 1.2rem;
-    width: 120px;
-    height: 120px;
-    font-size: 1rem;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 0 15px rgba(0, 255, 127, 0.6);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    text-align: center;
-  }
+    .mic-button {
+      background: linear-gradient(to bottom right, #00ff9d, #00c76d);
+      color: white;
+      border: none;
+      padding: 1.2rem;
+      width: 120px;
+      height: 120px;
+      font-size: 1rem;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 255, 127, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
 
-  .mic-button i {
-    font-size: 1.8rem;
-    margin-bottom: 0.3rem;
-  }
+    .mic-button i {
+      font-size: 1.8rem;
+      margin-bottom: 0.3rem;
+    }
 
-  .mic-button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 25px rgba(0, 255, 127, 0.9);
-  }
+    .mic-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 25px rgba(0, 255, 127, 0.9);
+    }
 
-  .cancel-button {
-    background: linear-gradient(to bottom right, #ff4d4d, #a00000);
-    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
-  }
+    .cancel-button {
+      background: linear-gradient(to bottom right, #ff4d4d, #a00000);
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+    }
 
-  .cancel-button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 25px rgba(255, 0, 0, 0.9);
-  }
+    .cancel-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 25px rgba(255, 0, 0, 0.9);
+    }
   </style>
 </head>
 <body>
 
-  <video id="idle" autoplay muted loop playsinline>
-    <source src="media/idle.mp4" type="video/mp4" />
-    Browser tidak mendukung video.
-  </video>
+<video id="idle" autoplay muted loop playsinline>
+  <source src="media/idle.mp4" type="video/mp4" />
+</video>
 
-  <video id="avatar" muted loop playsinline>
-    <source src="media/avatar.mp4" type="video/mp4" />
-    Browser tidak mendukung video.
-  </video>
+<video id="avatar" muted loop playsinline>
+  <source src="media/avatar.mp4" type="video/mp4" />
+</video>
 
-  <div class="overlay">
+<div class="overlay">
   <button id="micButton" class="mic-button">
     <i class="fas fa-microphone"></i>
     Bicara
   </button>
   <button id="cancelButton" class="mic-button cancel-button">
     <i class="fas fa-times"></i>
-    Batalkan
+    Batal
   </button>
 </div>
 
+<script>
+const GROQ_API_KEY = "Bearer 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";
+const idle = document.getElementById("idle");
+const avatar = document.getElementById("avatar");
 
-  <script>
-    const GROQ_API_KEY = "Bearer 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";
-    const idle = document.getElementById("idle");
-    const avatar = document.getElementById("avatar");
+let recognition = null;
+let ucap = null;
 
-    let recognition = null;
-    let ucap = null;
+async function mulaiRekam() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Perangkat tidak mendukung speech recognition.");
+    return;
+  }
 
-    async function mulaiRekam() {
-      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = 'id-ID';
-      recognition.start();
+  recognition = new SpeechRecognition();
+  recognition.lang = 'id-ID';
+  recognition.interimResults = false;
 
-      recognition.onresult = async function(event) {
-        const teks = event.results[0][0].transcript;
-        recognition = null;
-        const jawaban = await tanyaAI(teks);
-        bicara(jawaban);
-      };
+  recognition.onresult = async function(event) {
+    const teks = event.results[0][0].transcript;
+    recognition.stop(); // Penting untuk Android
+    recognition = null;
 
-      recognition.onend = () => {
-        recognition = null;
-      };
-    }
+    const jawaban = await tanyaAI(teks);
+    bicara(jawaban);
+  };
 
-    async function tanyaAI(teks) {
-      try {
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": GROQ_API_KEY,
-            "Content-Type": "application/json"
+  recognition.onerror = function(event) {
+    console.error("Error:", event.error);
+    recognition.stop();
+    recognition = null;
+  };
+
+  recognition.start();
+}
+
+async function tanyaAI(teks) {
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": GROQ_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama3-8b-8192",
+        messages: [
+          {
+            role: "system",
+            content: "Kamu adalah Nayra AI, asisten pintar dari teta.edu. Jawablah dengan ramah, sopan, dan mudah dipahami."
           },
-          body: JSON.stringify({
-            model: "llama3-8b-8192",
-            messages: [
-              {
-                role: "system",
-                content: "Kamu adalah Nayra AI, asisten pintar yang dikembangkan oleh teta.edu. Jawablah dengan ramah, sopan, dan mudah dimengerti oleh pengguna dari Indonesia."
-              },
-              {
-                role: "user",
-                content: teks
-              }
-            ],
-            temperature: 0.7
-          })
-        });
+          {
+            role: "user",
+            content: teks
+          }
+        ],
+        temperature: 0.7
+      })
+    });
 
-        const data = await res.json();
-        if (data.error) {
-          console.error(data.error);
-          return "⚠️ Error: " + data.error.message;
-        }
-        return data.choices?.[0]?.message?.content || "Maaf, tidak ada respons dari AI.";
-      } catch (error) {
-        console.error("Gagal menghubungi AI:", error);
-        return "⚠️ Terjadi kesalahan saat menghubungi AI.";
-      }
-    }
+    const data = await res.json();
+    if (data.error) return "⚠️ Error: " + data.error.message;
+    return data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
+  } catch (e) {
+    console.error("Gagal fetch:", e);
+    return "⚠️ Gagal menghubungi AI.";
+  }
+}
 
-    function bicara(teks) {
-      ucap = new SpeechSynthesisUtterance(teks);
-      ucap.lang = "id-ID";
+function bicara(teks) {
+  ucap = new SpeechSynthesisUtterance(teks);
+  ucap.lang = "id-ID";
 
-      idle.style.display = 'none';
-      avatar.style.display = 'block';
-      avatar.pause();
-      avatar.currentTime = 0;
+  idle.style.display = 'none';
+  avatar.style.display = 'block';
+  avatar.currentTime = 0;
+  avatar.play().catch(err => console.warn("Video gagal:", err));
+  speechSynthesis.speak(ucap);
 
-      avatar.play().catch(err => {
-        console.warn("Gagal memutar video avatar:", err);
-      });
+  ucap.onend = () => {
+    avatar.pause();
+    avatar.style.display = 'none';
+    idle.style.display = 'block';
+    ucap = null;
+  };
+}
 
-      speechSynthesis.speak(ucap);
+function cancelSemua() {
+  if (recognition) recognition.abort();
+  if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+  avatar.pause();
+  avatar.style.display = 'none';
+  idle.style.display = 'block';
+}
 
-      ucap.onend = () => {
-        avatar.pause();
-        avatar.style.display = 'none';
-        idle.style.display = 'block';
-        ucap = null;
-      };
-    }
-
-    function cancelSemua() {
-      if (recognition) {
-        recognition.abort();
-        recognition = null;
-      }
-
-      if (speechSynthesis.speaking || speechSynthesis.pending) {
-        speechSynthesis.cancel();
-      }
-
-      avatar.pause();
-      avatar.style.display = 'none';
-      idle.style.display = 'block';
-    }
-
-    document.getElementById("micButton").onclick = mulaiRekam;
-    document.getElementById("cancelButton").onclick = cancelSemua;
-  </script>
+document.getElementById("micButton").onclick = mulaiRekam;
+document.getElementById("cancelButton").onclick = cancelSemua;
+</script>
 
 </body>
 </html>
