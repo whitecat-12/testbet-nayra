@@ -122,40 +122,21 @@
     let ucap = null;
 
     async function mulaiRekam() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert("Browser ini tidak mendukung pengenalan suara.");
-    return;
-  }
+      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'id-ID';
+      recognition.start();
 
-  recognition = new SpeechRecognition();
-  recognition.lang = 'id-ID';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
+      recognition.onresult = async function(event) {
+        const teks = event.results[0][0].transcript;
+        recognition = null;
+        const jawaban = await tanyaAI(teks);
+        bicara(jawaban);
+      };
 
-  recognition.onresult = async function(event) {
-    const teks = event.results[0][0].transcript;
-    recognition.stop(); // Tambahkan ini agar langsung berhenti
-    recognition = null;
-
-    const jawaban = await tanyaAI(teks);
-    bicara(jawaban);
-  };
-
-  recognition.onerror = function(event) {
-    console.error("Error:", event.error);
-    recognition.stop();
-    recognition = null;
-  };
-
-  recognition.onend = function() {
-    console.log("Perekaman selesai");
-    recognition = null;
-  };
-
-  recognition.start();
-}
-
+      recognition.onend = () => {
+        recognition = null;
+      };
+    }
 
     async function tanyaAI(teks) {
       try {
