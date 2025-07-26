@@ -113,6 +113,18 @@
     <i class="fas fa-times"></i>
     Batal
   </button>
+  <!-- Tambahkan ini setelah tombol overlay -->
+<input 
+  id="speechInput" 
+  type="text" 
+  placeholder="Tekan mic dan bicara..." 
+  x-webkit-speech 
+  speech 
+  lang="id-ID"
+  onwebkitspeechchange="prosesInputManual()" 
+  style="position: absolute; bottom: 8rem; left: 50%; transform: translateX(-50%); padding: 1rem; border-radius: 1rem; border: none; font-size: 1rem; width: 80%; z-index: 10; display: none;">
+
+  
 </div>
 
 <script>
@@ -236,6 +248,56 @@ function cancelSemua() {
 
 document.getElementById("micButton").onclick = mulaiRekam;
 document.getElementById("cancelButton").onclick = cancelSemua;
+
+function mulaiRekam() {
+  // Cek apakah speechRecognition didukung (desktop)
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition && !/Android/i.test(navigator.userAgent)) {
+    // Jalan di desktop
+    jalankanSpeechRecognitionDesktop();
+  } else {
+    // Jalan di Android pakai input
+    document.getElementById("speechInput").click();
+  }
+}
+
+function prosesInputManual() {
+  const teks = document.getElementById("speechInput").value.trim();
+  if (!teks) return;
+
+  if (teks.toLowerCase().includes("dance") || teks.toLowerCase().includes("nari") || teks.toLowerCase().includes("menari")) {
+    mulaiDance();
+  } else {
+    tanyaAI(teks).then(jawaban => bicara(jawaban));
+  }
+
+  document.getElementById("speechInput").value = "";
+}
+
+function jalankanSpeechRecognitionDesktop() {
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = 'id-ID';
+  recognition.interimResults = false;
+
+  recognition.onresult = async function(event) {
+    const teks = event.results[0][0].transcript;
+
+    if (teks.toLowerCase().includes("dance") || teks.toLowerCase().includes("nari") || teks.toLowerCase().includes("menari")) {
+      mulaiDance();
+    } else {
+      const jawaban = await tanyaAI(teks);
+      bicara(jawaban);
+    }
+  };
+
+  recognition.onerror = function(event) {
+    console.error("SpeechRecognition Error:", event.error);
+    recognition.abort();
+  };
+
+  recognition.start();
+}
+
 </script>
 </body>
 </html>
