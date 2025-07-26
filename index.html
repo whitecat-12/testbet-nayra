@@ -203,9 +203,7 @@ function mulaiDance() {
   dance.play().catch(err => console.warn("Video dance gagal:", err));
 
   dance.onended = () => {
-    show(avatar);
-    avatar.currentTime = 0;
-    avatar.play().catch(err => console.warn("Video avatar gagal:", err));
+    show(idle);
   };
 }
 
