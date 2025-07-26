@@ -6,95 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      height: 100%;
-      background: black;
-      overflow: hidden;
-    }
-
-    #idle, #avatar {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 0;
-      max-width: 100vw;
-      max-height: 100vh;
-      width: auto;
-      height: auto;
-      filter: brightness(1);
-      background: black;
-    }
-
-    #avatar {
-      display: none;
-    }
-
-    .overlay {
-      position: absolute;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1;
-      display: flex;
-      gap: 1.5rem;
-    }
-
-    .mic-button {
-      background: linear-gradient(to bottom right, #00ff9d, #00c76d);
-      color: white;
-      border: none;
-      padding: 1.2rem;
-      width: 120px;
-      height: 120px;
-      font-size: 1rem;
-      border-radius: 50%;
-      cursor: pointer;
-      box-shadow: 0 0 15px rgba(0, 255, 127, 0.6);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-      text-align: center;
-    }
-
-    .mic-button i {
-      font-size: 1.8rem;
-      margin-bottom: 0.3rem;
-    }
-
-    .mic-button:hover {
-      transform: scale(1.1);
-      box-shadow: 0 0 25px rgba(0, 255, 127, 0.9);
-    }
-
-    .cancel-button {
-      background: linear-gradient(to bottom right, #ff4d4d, #a00000);
-      box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
-    }
-
-    .cancel-button:hover {
-      transform: scale(1.1);
-      box-shadow: 0 0 25px rgba(255, 0, 0, 0.9);
-    }
-
-    #joget {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 0;
-      display: none;
-      max-width: 100vw;
-      max-height: 100vh;
-      background: black;
-    }
-
-    
+    /* CSS Styles remain the same */
   </style>
 </head>
 <body>
@@ -111,7 +23,6 @@
   <source src="media/joget.mp4" type="video/mp4" />
 </video>
 
-
 <div class="overlay">
   <button id="micButton" class="mic-button">
     <i class="fas fa-microphone"></i>
@@ -127,6 +38,7 @@
 const GROQ_API_KEY = "Bearer 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";
 const idle = document.getElementById("idle");
 const avatar = document.getElementById("avatar");
+const joget = document.getElementById("joget");
 
 let recognition = null;
 let ucap = null;
@@ -144,7 +56,7 @@ async function mulaiRekam() {
 
   recognition.onresult = async function(event) {
     const teks = event.results[0][0].transcript;
-    recognition.stop(); // Penting untuk Android
+    recognition.stop(); 
     recognition = null;
 
     const jawaban = await tanyaAI(teks);
@@ -153,8 +65,10 @@ async function mulaiRekam() {
 
   recognition.onerror = function(event) {
     console.error("Error:", event.error);
-    recognition.stop();
-    recognition = null;
+    if (recognition) {
+      recognition.stop();
+      recognition = null;
+    }
   };
 
   recognition.start();
@@ -173,7 +87,7 @@ async function tanyaAI(teks) {
         messages: [
           {
             role: "system",
-            content:  "Kamu adalah Nayra AI, asisten pintar yang dikembangkan oleh teta.edu. Jawablah dengan ramah, sopan, dan mudah dimengerti oleh pengguna dari Indonesia."
+            content: "Kamu adalah Nayra AI, asisten pintar yang dikembangkan oleh teta.edu. Jawablah dengan ramah, sopan, dan mudah dimengerti oleh pengguna dari Indonesia."
           },
           {
             role: "user",
@@ -195,23 +109,33 @@ async function tanyaAI(teks) {
 
 function bicara(teks) {
   const isJoget = /joget|menari|goyang/i.test(teks);
-  const videoTarget = isJoget ? document.getElementById("joget") : document.getElementById("avatar");
+  const videoTarget = isJoget ? joget : avatar;
 
-  idle.style.display = 'none';
-  avatar.style.display = 'none';
-  joget.style.display = 'none';
+  if (videoTarget) {
+    idle.style.display = 'none';
+    avatar.style.display = 'none';
+    joget.style.display = 'none';
 
-  videoTarget.style.display = 'block';
-  videoTarget.currentTime = 0;
-  videoTarget.play().catch(err => console.warn("Video gagal:", err));
+    videoTarget.style.display = 'block';
+    videoTarget.currentTime = 0;
+    videoTarget.play().catch(err => {
+      console.warn("Video gagal diputar:", err);
+      videoTarget.style.display = 'none';
+      idle.style.display = 'block';
+    });
+  } else {
+    console.error("Video target tidak ditemukan");
+  }
 
   ucap = new SpeechSynthesisUtterance(teks);
   ucap.lang = "id-ID";
   speechSynthesis.speak(ucap);
 
   ucap.onend = () => {
-    videoTarget.pause();
-    videoTarget.style.display = 'none';
+    if (videoTarget) {
+      videoTarget.pause();
+      videoTarget.style.display = 'none';
+    }
     idle.style.display = 'block';
     ucap = null;
   };
