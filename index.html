@@ -128,7 +128,7 @@ async function mulaiRekam() {
     recognition.stop(); // Penting untuk Android
     recognition = null;
 
-    // Cek jika perintahnya adalah untuk menari
+    // Deteksi perintah menari
     if (teks.toLowerCase().includes("dance") || teks.toLowerCase().includes("nari") || teks.toLowerCase().includes("menari")) {
       mulaiDance();
     } else {
@@ -180,13 +180,17 @@ async function tanyaAI(teks) {
 }
 
 function mulaiDance() {
-  // Ganti video ke avatar dance
+  idle.style.display = 'none';
   avatar.style.display = 'block';
-  avatar.src = "media/dance.mp4";  // Ganti dengan video dance yang sesuai
   avatar.currentTime = 0;
-  avatar.play().catch(err => console.warn("Video gagal:", err));
+  avatar.play().catch(err => console.warn("Video gagal diputar:", err));
 
-  // Tidak ada bicara, hanya menari
+  // Menari selama 6 detik, lalu kembali ke idle
+  setTimeout(() => {
+    avatar.pause();
+    avatar.style.display = 'none';
+    idle.style.display = 'block';
+  }, 6000);
 }
 
 function bicara(teks) {
@@ -221,4 +225,3 @@ document.getElementById("cancelButton").onclick = cancelSemua;
 
 </body>
 </html>
-
