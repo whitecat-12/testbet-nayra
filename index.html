@@ -16,8 +16,6 @@
     }
 
     #idle, #avatar {
-      opacity: 0;
-      transition: opacity 0.8s ease-in-out;
       position: fixed;
       top: 50%;
       left: 50%;
@@ -29,9 +27,6 @@
       height: auto;
       filter: brightness(1);
       background: black;
-    }
-    #idle.show, #avatar.show {
-      opacity: 1;
     }
 
     #avatar {
@@ -90,7 +85,7 @@
 </head>
 <body>
 
-<video id="idle" autoplay muted loop playsinline class="show">
+<video id="idle" autoplay muted loop playsinline>
   <source src="media/idle.mp4" type="video/mp4" />
 </video>
 
@@ -191,27 +186,27 @@ function mulaiDance() {
   avatarSource.src = VIDEO_DANCE;
   avatar.load();
 
-  idle.classList.remove("show");
-  avatar.classList.add("show");
-
+  idle.style.display = 'none';
+  avatar.style.display = 'block';
   avatar.currentTime = 0;
   avatar.play().catch(err => console.warn("Video gagal:", err));
 
   // Stop setelah 10.2 detik
   setTimeout(() => {
     avatar.pause();
-    avatar.classList.remove("show");
-    idle.classList.add("show");
-
-    // Reset ke avatar biasa
+    avatar.style.display = 'none';
+    idle.style.display = 'block';
+    
+    // Reset ke video avatar normal
     avatarSource.src = VIDEO_AVATAR;
     avatar.load();
-  }, 10200);
+  }, 10200); // 10.2 detik = 10200 ms
 }
 
 
 function bicara(teks) {
-  if (!avatarSource.src.includes(VIDEO_AVATAR)) {
+  // Pastikan kembali ke video avatar asli
+  if (avatarSource.src !== location.origin + '/' + VIDEO_AVATAR) {
     avatarSource.src = VIDEO_AVATAR;
     avatar.load();
   }
@@ -219,21 +214,19 @@ function bicara(teks) {
   ucap = new SpeechSynthesisUtterance(teks);
   ucap.lang = "id-ID";
 
-  idle.classList.remove("show");
-  avatar.classList.add("show");
-
+  idle.style.display = 'none';
+  avatar.style.display = 'block';
   avatar.currentTime = 0;
   avatar.play().catch(err => console.warn("Video gagal:", err));
   speechSynthesis.speak(ucap);
 
   ucap.onend = () => {
     avatar.pause();
-    avatar.classList.remove("show");
-    idle.classList.add("show");
+    avatar.style.display = 'none';
+    idle.style.display = 'block';
     ucap = null;
   };
 }
-
 
 function cancelSemua() {
   if (recognition) recognition.abort();
