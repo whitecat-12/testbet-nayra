@@ -226,9 +226,13 @@ function bicara(teks) {
 function cancelSemua() {
   if (recognition) recognition.abort();
   if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+
   idle.pause(); avatar.pause(); dance.pause();
   show(idle);
+  idle.currentTime = 0; // opsional: mulai dari awal
+  idle.play().catch(err => console.warn("Idle gagal jalan:", err)); // ini bagian penting
 }
+
 
 document.getElementById("micButton").onclick = mulaiRekam;
 document.getElementById("cancelButton").onclick = cancelSemua;
