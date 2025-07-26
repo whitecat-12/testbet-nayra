@@ -111,21 +111,46 @@ function bicara(teks) {
   const isJoget = /joget|menari|goyang/i.test(teks);
   const videoTarget = isJoget ? joget : avatar;
 
-  if (videoTarget) {
-    idle.style.display = 'none';
-    avatar.style.display = 'none';
-    joget.style.display = 'none';
+  // Menyembunyikan semua video terlebih dahulu
+  idle.style.display = 'none';
+  avatar.style.display = 'none';
+  joget.style.display = 'none';
 
-    videoTarget.style.display = 'block';
-    videoTarget.currentTime = 0;
-    videoTarget.play().catch(err => {
-      console.warn("Video gagal diputar:", err);
-      videoTarget.style.display = 'none';
-      idle.style.display = 'block';
-    });
-  } else {
-    console.error("Video target tidak ditemukan");
+  // Mengecek jika ada video yang sedang diputar, hentikan dulu
+  if (videoTarget && !videoTarget.paused) {
+    videoTarget.pause();
   }
+
+  // Menampilkan video target baru
+  videoTarget.style.display = 'block';
+  videoTarget.currentTime = 0;
+
+  // Menunggu video selesai sebelum melanjutkan
+  videoTarget.play().catch(err => {
+    console.warn("Video gagal diputar:", err);
+    videoTarget.style.display = 'none';
+    idle.style.display = 'block';
+  });
+
+  // Event listener untuk video selesai diputar
+  videoTarget.onended = () => {
+    videoTarget.style.display = 'none';
+    idle.style.display = 'block';
+  };
+
+  // Melakukan text-to-speech setelah video dimulai
+  ucap = new SpeechSynthesisUtterance(teks);
+  ucap.lang = "id-ID";
+  speechSynthesis.speak(ucap);
+
+  ucap.onend = () => {
+    videoTarget.pause();
+    videoTarget.style.display = 'none';
+    idle.style.display = 'block';
+    ucap = null;
+  };
+}
+
 
   ucap = new SpeechSynthesisUtterance(teks);
   ucap.lang = "id-ID";
