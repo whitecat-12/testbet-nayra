@@ -94,7 +94,7 @@
 </video>
 
 <!-- Tambahkan video untuk dance -->
-<video id="dance" muted loop playsinline>
+<video id="dance" muted playsinline>
   <source src="media/dance.mp4" type="video/mp4" />
 </video>
 
@@ -207,8 +207,14 @@ function joget() {
   idle.style.display = 'none';
   avatar.style.display = 'none';
   dance.style.display = 'block';
-  dance.currentTime = 0;
+  dance.currentTime = 0; // Mulai dari awal
   dance.play().catch(err => console.warn("Video dance gagal:", err));
+
+  // Setelah video selesai, sembunyikan dan kembalikan ke idle
+  dance.onended = () => {
+    dance.style.display = 'none';
+    idle.style.display = 'block';
+  };
 }
 
 function cancelSemua() {
