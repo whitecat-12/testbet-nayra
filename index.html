@@ -15,7 +15,7 @@
       overflow: hidden;
     }
 
-    #idle, #avatar, #dance {
+    #idle, #avatar {
       position: fixed;
       top: 50%;
       left: 50%;
@@ -29,15 +29,8 @@
       background: black;
     }
 
-    #avatar, #dance {
+    #avatar {
       display: none;
-    }
-
-    #dance {
-      z-index: 2;
-      width: 80vw;  /* Pastikan video tidak terlalu besar */
-      height: auto;
-      display: none; /* Mulai tersembunyi */
     }
 
     .overlay {
@@ -100,11 +93,6 @@
   <source src="media/avatar.mp4" type="video/mp4" />
 </video>
 
-<!-- Tambahkan video untuk dance -->
-<video id="dance" muted playsinline>
-  <source src="media/dance.mp4" type="video/mp4" />
-</video>
-
 <div class="overlay">
   <button id="micButton" class="mic-button">
     <i class="fas fa-microphone"></i>
@@ -120,7 +108,6 @@
 const GROQ_API_KEY = "Bearer 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";
 const idle = document.getElementById("idle");
 const avatar = document.getElementById("avatar");
-const dance = document.getElementById("dance");
 
 let recognition = null;
 let ucap = null;
@@ -141,12 +128,12 @@ async function mulaiRekam() {
     recognition.stop(); // Penting untuk Android
     recognition = null;
 
-    const jawaban = await tanyaAI(teks);
-    bicara(jawaban);
-
-    // Cek apakah pengguna meminta Nayra untuk menari
-    if (teks.toLowerCase().includes("dance")) {
-      joget();
+    // Cek jika perintahnya adalah untuk menari
+    if (teks.toLowerCase().includes("dance") || teks.toLowerCase().includes("nari") || teks.toLowerCase().includes("menari")) {
+      mulaiDance();
+    } else {
+      const jawaban = await tanyaAI(teks);
+      bicara(jawaban);
     }
   };
 
@@ -192,6 +179,16 @@ async function tanyaAI(teks) {
   }
 }
 
+function mulaiDance() {
+  // Ganti video ke avatar dance
+  avatar.style.display = 'block';
+  avatar.src = "media/dance.mp4";  // Ganti dengan video dance yang sesuai
+  avatar.currentTime = 0;
+  avatar.play().catch(err => console.warn("Video gagal:", err));
+
+  // Tidak ada bicara, hanya menari
+}
+
 function bicara(teks) {
   ucap = new SpeechSynthesisUtterance(teks);
   ucap.lang = "id-ID";
@@ -210,27 +207,11 @@ function bicara(teks) {
   };
 }
 
-function joget() {
-  idle.style.display = 'none';
-  avatar.style.display = 'none';
-  dance.style.display = 'block';
-  dance.currentTime = 0; // Mulai dari awal
-  dance.play().catch(err => console.warn("Video dance gagal:", err));
-
-  // Setelah video selesai, sembunyikan dan kembalikan ke idle
-  dance.onended = () => {
-    dance.style.display = 'none';
-    idle.style.display = 'block';
-  };
-}
-
 function cancelSemua() {
   if (recognition) recognition.abort();
   if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
   avatar.pause();
-  dance.pause();
   avatar.style.display = 'none';
-  dance.style.display = 'none';
   idle.style.display = 'block';
 }
 
