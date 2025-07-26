@@ -166,14 +166,8 @@
         body: JSON.stringify({
           model: "llama3-8b-8192",
           messages: [
-            {
-              role: "system",
-              content: "Kamu adalah Nayra AI, asisten pintar dari teta.edu. Jawablah dengan ramah, sopan, dan mudah dipahami."
-            },
-            {
-              role: "user",
-              content: teks
-            }
+            { role: "system", content: "Kamu adalah Nayra AI, asisten pintar dari teta.edu. Jawablah dengan ramah, sopan, dan mudah dipahami." },
+            { role: "user", content: teks }
           ],
           temperature: 0.7
         })
