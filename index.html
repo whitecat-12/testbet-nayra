@@ -15,7 +15,7 @@
       overflow: hidden;
     }
 
-    #idle, #avatar, #danceAvatar {
+    #idle, #avatar, #dance {
       position: fixed;
       top: 50%;
       left: 50%;
@@ -29,11 +29,7 @@
       background: black;
     }
 
-    #avatar {
-      display: none;
-    }
-
-    #danceAvatar {
+    #avatar, #dance {
       display: none;
     }
 
@@ -97,7 +93,8 @@
   <source src="media/avatar.mp4" type="video/mp4" />
 </video>
 
-<video id="danceAvatar" muted loop playsinline>
+<!-- Tambahkan video untuk dance -->
+<video id="dance" muted loop playsinline>
   <source src="media/dance.mp4" type="video/mp4" />
 </video>
 
@@ -113,110 +110,119 @@
 </div>
 
 <script>
-  const GROQ_API_KEY = "Bearer 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";
-  const idle = document.getElementById("idle");
-  const avatar = document.getElementById("avatar");
-  const danceAvatar = document.getElementById("danceAvatar");
+const GROQ_API_KEY = "Bearer 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";
+const idle = document.getElementById("idle");
+const avatar = document.getElementById("avatar");
+const dance = document.getElementById("dance");
 
-  let recognition = null;
-  let ucap = null;
+let recognition = null;
+let ucap = null;
 
-  async function mulaiRekam() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Perangkat tidak mendukung speech recognition.");
-      return;
+async function mulaiRekam() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Perangkat tidak mendukung speech recognition.");
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = 'id-ID';
+  recognition.interimResults = false;
+
+  recognition.onresult = async function(event) {
+    const teks = event.results[0][0].transcript;
+    recognition.stop(); // Penting untuk Android
+    recognition = null;
+
+    const jawaban = await tanyaAI(teks);
+    bicara(jawaban);
+
+    // Cek apakah pengguna meminta Nayra untuk menari
+    if (teks.toLowerCase().includes("dance")) {
+      joget();
     }
+  };
 
-    recognition = new SpeechRecognition();
-    recognition.lang = 'id-ID';
-    recognition.interimResults = false;
+  recognition.onerror = function(event) {
+    console.error("Error:", event.error);
+    recognition.stop();
+    recognition = null;
+  };
 
-    recognition.onresult = async function(event) {
-      const teks = event.results[0][0].transcript;
-      recognition.stop(); // Penting untuk Android
-      recognition = null;
+  recognition.start();
+}
 
-      // Cek jika teksnya adalah perintah "joget"
-      if (teks.toLowerCase().includes("joget")) {
-        tampilkanDance();
-      } else {
-        const jawaban = await tanyaAI(teks);
-        bicara(jawaban);
-      }
-    };
+async function tanyaAI(teks) {
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": GROQ_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama3-8b-8192",
+        messages: [
+          {
+            role: "system",
+            content: "Kamu adalah Nayra AI, asisten pintar dari teta.edu. Jawablah dengan ramah, sopan, dan mudah dipahami."
+          },
+          {
+            role: "user",
+            content: teks
+          }
+        ],
+        temperature: 0.7
+      })
+    });
 
-    recognition.onerror = function(event) {
-      console.error("Error:", event.error);
-      recognition.stop();
-      recognition = null;
-    };
-
-    recognition.start();
+    const data = await res.json();
+    if (data.error) return "⚠️ Error: " + data.error.message;
+    return data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
+  } catch (e) {
+    console.error("Gagal fetch:", e);
+    return "⚠️ Gagal menghubungi AI.";
   }
+}
 
-  async function tanyaAI(teks) {
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": GROQ_API_KEY,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "llama3-8b-8192",
-          messages: [
-            { role: "system", content: "Kamu adalah Nayra AI, asisten pintar dari teta.edu. Jawablah dengan ramah, sopan, dan mudah dipahami." },
-            { role: "user", content: teks }
-          ],
-          temperature: 0.7
-        })
-      });
+function bicara(teks) {
+  ucap = new SpeechSynthesisUtterance(teks);
+  ucap.lang = "id-ID";
 
-      const data = await res.json();
-      if (data.error) return "⚠️ Error: " + data.error.message;
-      return data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
-    } catch (e) {
-      console.error("Gagal fetch:", e);
-      return "⚠️ Gagal menghubungi AI.";
-    }
-  }
+  idle.style.display = 'none';
+  avatar.style.display = 'block';
+  avatar.currentTime = 0;
+  avatar.play().catch(err => console.warn("Video gagal:", err));
+  speechSynthesis.speak(ucap);
 
-  function bicara(teks) {
-    ucap = new SpeechSynthesisUtterance(teks);
-    ucap.lang = "id-ID";
-
-    idle.style.display = 'none';
-    avatar.style.display = 'block';
-    avatar.currentTime = 0;
-    avatar.play().catch(err => console.warn("Video gagal:", err));
-    speechSynthesis.speak(ucap);
-
-    ucap.onend = () => {
-      avatar.pause();
-      avatar.style.display = 'none';
-      idle.style.display = 'block';
-      ucap = null;
-    };
-  }
-
-  function tampilkanDance() {
-    avatar.style.display = 'none';
-    danceAvatar.style.display = 'block';
-    danceAvatar.currentTime = 0;
-    danceAvatar.play().catch(err => console.warn("Gagal memutar video joget:", err));
-  }
-
-  function cancelSemua() {
-    if (recognition) recognition.abort();
-    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+  ucap.onend = () => {
     avatar.pause();
     avatar.style.display = 'none';
     idle.style.display = 'block';
-  }
+    ucap = null;
+  };
+}
 
-  document.getElementById("micButton").onclick = mulaiRekam;
-  document.getElementById("cancelButton").onclick = cancelSemua;
+function joget() {
+  idle.style.display = 'none';
+  avatar.style.display = 'none';
+  dance.style.display = 'block';
+  dance.currentTime = 0;
+  dance.play().catch(err => console.warn("Video dance gagal:", err));
+}
+
+function cancelSemua() {
+  if (recognition) recognition.abort();
+  if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+  avatar.pause();
+  dance.pause();
+  avatar.style.display = 'none';
+  dance.style.display = 'none';
+  idle.style.display = 'block';
+}
+
+document.getElementById("micButton").onclick = mulaiRekam;
+document.getElementById("cancelButton").onclick = cancelSemua;
 </script>
 
 </body>
