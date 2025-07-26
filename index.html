@@ -15,22 +15,25 @@
       overflow: hidden;
     }
 
-    #idle, #avatar {
+    video {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 0;
       max-width: 100vw;
       max-height: 100vh;
       width: auto;
       height: auto;
-      filter: brightness(1);
       background: black;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 0;
+      pointer-events: none;
     }
 
-    #avatar {
-      display: none;
+    video.show {
+      opacity: 1;
+      z-index: 1;
     }
 
     .overlay {
@@ -38,7 +41,7 @@
       bottom: 2rem;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 1;
+      z-index: 2;
       display: flex;
       gap: 1.5rem;
     }
@@ -85,14 +88,22 @@
 </head>
 <body>
 
-<video id="idle" autoplay muted loop playsinline>
+<!-- Video Idle -->
+<video id="idle" class="show" autoplay muted loop playsinline>
   <source src="media/idle.mp4" type="video/mp4" />
 </video>
 
+<!-- Video Avatar (bicara) -->
 <video id="avatar" muted loop playsinline>
-  <source id="avatarSource" src="media/avatar.mp4" type="video/mp4" />
+  <source src="media/avatar.mp4" type="video/mp4" />
 </video>
 
+<!-- Video Dance (separate file) -->
+<video id="dance" muted playsinline>
+  <source src="media/dance.mp4" type="video/mp4" />
+</video>
+
+<!-- Tombol UI -->
 <div class="overlay">
   <button id="micButton" class="mic-button">
     <i class="fas fa-microphone"></i>
@@ -108,13 +119,17 @@
 const GROQ_API_KEY = "Bearer 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";
 const idle = document.getElementById("idle");
 const avatar = document.getElementById("avatar");
-const avatarSource = document.getElementById("avatarSource");
-
-const VIDEO_AVATAR = "media/avatar.mp4";
-const VIDEO_DANCE = "media/dance.mp4";
+const dance = document.getElementById("dance");
 
 let recognition = null;
 let ucap = null;
+
+function show(video) {
+  idle.classList.remove("show");
+  avatar.classList.remove("show");
+  dance.classList.remove("show");
+  video.classList.add("show");
+}
 
 async function mulaiRekam() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -129,7 +144,7 @@ async function mulaiRekam() {
 
   recognition.onresult = async function(event) {
     const teks = event.results[0][0].transcript;
-    recognition.stop(); // Penting untuk Android
+    recognition.stop();
     recognition = null;
 
     if (teks.toLowerCase().includes("dance") || teks.toLowerCase().includes("nari") || teks.toLowerCase().includes("menari")) {
@@ -183,47 +198,29 @@ async function tanyaAI(teks) {
 }
 
 function mulaiDance() {
-  avatarSource.src = VIDEO_DANCE;
-  avatar.load();
+  show(dance);
+  dance.currentTime = 0;
+  dance.play().catch(err => console.warn("Video dance gagal:", err));
 
-  idle.style.display = 'none';
-  avatar.style.display = 'block';
-  avatar.currentTime = 0;
-  avatar.play().catch(err => console.warn("Video gagal:", err));
-
-  // Stop setelah 10.2 detik
-  setTimeout(() => {
-    avatar.pause();
-    avatar.style.display = 'none';
-    idle.style.display = 'block';
-    
-    // Reset ke video avatar normal
-    avatarSource.src = VIDEO_AVATAR;
-    avatar.load();
-  }, 10200); // 10.2 detik = 10200 ms
+  dance.onended = () => {
+    show(avatar);
+    avatar.currentTime = 0;
+    avatar.play().catch(err => console.warn("Video avatar gagal:", err));
+  };
 }
 
-
 function bicara(teks) {
-  // Pastikan kembali ke video avatar asli
-  if (avatarSource.src !== location.origin + '/' + VIDEO_AVATAR) {
-    avatarSource.src = VIDEO_AVATAR;
-    avatar.load();
-  }
+  show(avatar);
+  avatar.currentTime = 0;
+  avatar.play().catch(err => console.warn("Video gagal:", err));
 
   ucap = new SpeechSynthesisUtterance(teks);
   ucap.lang = "id-ID";
-
-  idle.style.display = 'none';
-  avatar.style.display = 'block';
-  avatar.currentTime = 0;
-  avatar.play().catch(err => console.warn("Video gagal:", err));
   speechSynthesis.speak(ucap);
 
   ucap.onend = () => {
     avatar.pause();
-    avatar.style.display = 'none';
-    idle.style.display = 'block';
+    show(idle);
     ucap = null;
   };
 }
@@ -231,14 +228,12 @@ function bicara(teks) {
 function cancelSemua() {
   if (recognition) recognition.abort();
   if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
-  avatar.pause();
-  avatar.style.display = 'none';
-  idle.style.display = 'block';
+  idle.pause(); avatar.pause(); dance.pause();
+  show(idle);
 }
 
 document.getElementById("micButton").onclick = mulaiRekam;
 document.getElementById("cancelButton").onclick = cancelSemua;
 </script>
-
 </body>
 </html>
