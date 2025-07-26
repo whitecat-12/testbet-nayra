@@ -190,7 +190,19 @@ function mulaiDance() {
   avatar.style.display = 'block';
   avatar.currentTime = 0;
   avatar.play().catch(err => console.warn("Video gagal:", err));
+
+  // Stop setelah 10.2 detik
+  setTimeout(() => {
+    avatar.pause();
+    avatar.style.display = 'none';
+    idle.style.display = 'block';
+    
+    // Reset ke video avatar normal
+    avatarSource.src = VIDEO_AVATAR;
+    avatar.load();
+  }, 10200); // 10.2 detik = 10200 ms
 }
+
 
 function bicara(teks) {
   // Pastikan kembali ke video avatar asli
