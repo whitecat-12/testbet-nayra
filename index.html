@@ -131,6 +131,12 @@ function show(video) {
   video.classList.add("show");
 }
 
+function bersihkanMarkdown(teks) {
+  return teks
+    .replace(/\*\*(.*?)\*\*/g, '$1')  // Hilangkan **bold**
+    .replace(/\*(.*?)\*/g, '$1');     // Hilangkan *italic*
+}
+
 async function mulaiRekam() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
@@ -151,7 +157,7 @@ async function mulaiRekam() {
       mulaiDance();
     } else {
       const jawaban = await tanyaAI(teks);
-      bicara(jawaban);
+      bicara(bersihkanMarkdown(jawaban));
     }
   };
 
@@ -229,10 +235,9 @@ function cancelSemua() {
 
   idle.pause(); avatar.pause(); dance.pause();
   show(idle);
-  idle.currentTime = 0; // opsional: mulai dari awal
-  idle.play().catch(err => console.warn("Idle gagal jalan:", err)); // ini bagian penting
+  idle.currentTime = 0;
+  idle.play().catch(err => console.warn("Idle gagal jalan:", err));
 }
-
 
 document.getElementById("micButton").onclick = mulaiRekam;
 document.getElementById("cancelButton").onclick = cancelSemua;
