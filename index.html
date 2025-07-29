@@ -130,9 +130,12 @@ const dance = document.getElementById("dance");
 
 let recognition = null;
 let ucap = null;
-let history = [];
 
-// LocalStorage fungsi
+// Ambil history dari localStorage saat halaman dimuat
+let history = ambilRiwayat();
+
+// ====== LocalStorage fungsi ======
+
 function getNamaPengguna() {
   return localStorage.getItem("namaPengguna") || null;
 }
@@ -140,6 +143,22 @@ function getNamaPengguna() {
 function setNamaPengguna(nama) {
   localStorage.setItem("namaPengguna", nama);
 }
+
+function simpanRiwayat() {
+  localStorage.setItem("riwayatChat", JSON.stringify(history));
+}
+
+function ambilRiwayat() {
+  const data = localStorage.getItem("riwayatChat");
+  return data ? JSON.parse(data) : [];
+}
+
+function hapusRiwayat() {
+  localStorage.removeItem("riwayatChat");
+  history = [];
+}
+
+// ====== Fungsi Utama ======
 
 function show(video) {
   idle.classList.remove("show");
@@ -227,6 +246,9 @@ async function tanyaAI(teks) {
     const reply = data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
     history.push({ role: "assistant", content: reply });
 
+    // Simpan history ke localStorage
+    simpanRiwayat();
+
     return reply;
   } catch (e) {
     console.error("Gagal fetch:", e);
@@ -267,9 +289,8 @@ function cancelSemua() {
   idle.play().catch(err => console.warn("Idle gagal jalan:", err));
 }
 
-// RESET HISTORY
 function resetKonteks() {
-  history = [];
+  hapusRiwayat();
   bicara("Konteks telah dihapus. Kita bisa mulai percakapan baru.");
 }
 
@@ -278,6 +299,7 @@ document.getElementById("micButton").onclick = mulaiRekam;
 document.getElementById("cancelButton").onclick = cancelSemua;
 document.getElementById("resetButton")?.addEventListener("click", resetKonteks);
 </script>
+
 
 </body>
 </html>
