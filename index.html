@@ -209,21 +209,39 @@
       recorder.ondataavailable = e => audioChunks.push(e.data);
       recorder.onstop = async () => {
         const blob = new Blob(audioChunks, { type: "audio/webm" });
-        const res = await fetch("https://api.wit.ai/speech", {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer AB6AY7LD65IX32KBIAR6V36FOO4JTQLD",
-            "Content-Type": "audio/webm"
-          },
-          body: blob
-        });
-        const hasil = await res.json();
-        const teks = hasil.text || "Tidak dikenali";
-        document.getElementById("input").value = teks;
+
+        try {
+          const res = await fetch("https://api.wit.ai/speech", {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer AB6AY7LD65IX32KBIAR6V36FOO4JTQLD",
+              "Content-Type": "audio/webm;codecs=opus",
+              "Accept": "application/json"
+            },
+            body: blob
+          });
+
+          const textResponse = await res.text();
+          console.log("Respon Wit.ai:", textResponse);
+
+          let hasil;
+          try {
+            hasil = JSON.parse(textResponse);
+          } catch {
+            hasil = { text: "Gagal parsing hasil dari Wit.ai." };
+          }
+
+          const teks = hasil.text || "Tidak dikenali";
+          document.getElementById("input").value = teks;
+          kirimTeks();
+        } catch (err) {
+          console.error("Gagal mengirim ke Wit.ai:", err);
+        }
+
         micBtn.classList.remove("recording");
         micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-        kirimTeks();
       };
+
       recorder.start();
       setTimeout(() => {
         recorder.stop();
