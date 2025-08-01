@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nayra AI Chat</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <style>
     body {
       margin: 0;
@@ -54,6 +55,7 @@
       max-width: 80%;
       word-wrap: break-word;
       line-height: 1.4;
+      white-space: pre-wrap;
     }
     .user {
       align-self: flex-end;
@@ -105,6 +107,15 @@
     #micBtn.recording {
       color: red;
     }
+    pre code {
+      display: block;
+      overflow-x: auto;
+      padding: 1em;
+      background: #282c34;
+      border-radius: 10px;
+      color: #fff;
+      font-family: Consolas, monospace;
+    }
   </style>
 </head>
 <body>
@@ -123,189 +134,131 @@
       <input type="text" id="input" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter') kirimTeks()" />
     </div>
     <button class="send-btn" onclick="kirimTeks()"><i class="fas fa-paper-plane"></i></button>
-    <button class="send-btn" id="micBtn" onclick="rekamDanKirimKeWit()"><i class="fas fa-microphone"></i></button>
+    <button class="send-btn" id="micBtn" onclick="rekamDanKirimDenganSpeechAPI()"><i class="fas fa-microphone"></i></button>
   </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
   <script>
-  const GROQ_KEYS = [
-    "Bearer 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",
-    "Bearer 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"
-  ];
-  let history = JSON.parse(localStorage.getItem("riwayatChat") || "[]");
+    const GROQ_KEYS = [
+      "Bearer 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",
+      "Bearer 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"
+    ];
+    let history = JSON.parse(localStorage.getItem("riwayatChat") || "[]");
 
-  function simpanRiwayat() {
-    localStorage.setItem("riwayatChat", JSON.stringify(history));
-  }
-  function resetRiwayat() {
-    localStorage.removeItem("riwayatChat");
-    history = [];
-    document.getElementById("output").innerHTML = "";
-  }
-  function bersihkanMarkdown(teks) {
-    return teks.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
-  }
-
-  async function cobaGroqDenganBanyakKey(body) {
-    for (const key of GROQ_KEYS) {
-      try {
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": key,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(body)
-        });
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.error("Fetch error:", err);
-      }
+    function simpanRiwayat() {
+      localStorage.setItem("riwayatChat", JSON.stringify(history));
     }
-    return { error: { message: "Semua API gagal dihubungi." } };
-  }
 
-  async function kirimTeks() {
-    const input = document.getElementById("input");
-    const output = document.getElementById("output");
-    const teks = input.value.trim();
-    if (!teks) return;
-    output.innerHTML += `<div class='bubble user'>${teks}</div>`;
-    history.push({ role: "user", content: teks });
-    simpanRiwayat();
-    input.value = "";
-    const loadingDiv = document.createElement("div");
-    loadingDiv.className = "bubble bot";
-    loadingDiv.textContent = "⏳ Sedang memproses...";
-    output.appendChild(loadingDiv);
-    output.scrollTop = output.scrollHeight;
-    const body = {
-      model: "llama3-8b-8192",
-      messages: [
-        { role: "system", content: "Kamu adalah Nayra AI, asisten pintar dari teta.education. Jawablah dengan ramah dan mudah dimengerti." },
-        ...history
-      ],
-      temperature: 0.7
-    };
-    const data = await cobaGroqDenganBanyakKey(body);
-    output.removeChild(loadingDiv);
-    const reply = data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
-    history.push({ role: "assistant", content: reply });
-    simpanRiwayat();
-    const botDiv = document.createElement("div");
-    botDiv.className = "bubble bot";
-    botDiv.textContent = bersihkanMarkdown(reply);
-    output.appendChild(botDiv);
-    bicara(reply);
-    output.scrollTop = output.scrollHeight;
-  }
+    function resetRiwayat() {
+      localStorage.removeItem("riwayatChat");
+      history = [];
+      document.getElementById("output").innerHTML = "";
+    }
 
-  function bicara(teks) {
-    const ucap = new SpeechSynthesisUtterance(teks);
-    ucap.lang = "id-ID";
-    speechSynthesis.speak(ucap);
-  }
+    function formatMarkdownToHTML(md) {
+      return md.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+        return `<pre><code class="language-${lang || ''}">${code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
+      }).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+    }
 
-  async function rekamDanKirimKeWit() {
-    const micBtn = document.getElementById("micBtn");
-    micBtn.classList.add("recording");
-    micBtn.innerHTML = '<i class="fas fa-stop"></i>';
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-    const audioChunks = [];
-
-    recorder.ondataavailable = e => audioChunks.push(e.data);
-
-    recorder.onstop = async () => {
-      const webmBlob = new Blob(audioChunks, { type: "audio/webm" });
-
-      try {
-        const wavBlob = await convertWebmToWav(webmBlob);
-
-        const res = await fetch("https://api.wit.ai/speech", {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer AB6AY7LD65IX32KBIAR6V36FOO4JTQLD",
-            "Content-Type": "audio/wav",
-            "Accept": "application/json"
-          },
-          body: wavBlob
-        });
-
-        const textResponse = await res.text();
-        console.log("Respon Wit.ai:", textResponse);
-
-        let hasil;
+    async function cobaGroqDenganBanyakKey(body) {
+      for (const key of GROQ_KEYS) {
         try {
-          hasil = JSON.parse(textResponse);
-        } catch {
-          hasil = { text: "Gagal parsing hasil dari Wit.ai." };
+          const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": key,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+          });
+          if (res.ok) return await res.json();
+        } catch (err) {
+          console.error("Fetch error:", err);
         }
+      }
+      return { error: { message: "Semua API gagal dihubungi." } };
+    }
 
-        const teks = hasil.text || "Tidak dikenali";
+    async function kirimTeks() {
+      const input = document.getElementById("input");
+      const output = document.getElementById("output");
+      const teks = input.value.trim();
+      if (!teks) return;
+      output.innerHTML += `<div class='bubble user'>${teks}</div>`;
+      history.push({ role: "user", content: teks });
+      simpanRiwayat();
+      input.value = "";
+      const loadingDiv = document.createElement("div");
+      loadingDiv.className = "bubble bot";
+      loadingDiv.textContent = "⏳ Sedang memproses...";
+      output.appendChild(loadingDiv);
+      output.scrollTop = output.scrollHeight;
+      const body = {
+        model: "llama3-8b-8192",
+        messages: [
+          { role: "system", content: "Kamu adalah Nayra AI, asisten pintar dari teta.education. Jawablah dengan ramah, dalam bahasa Indonesia, dan mudah dimengerti. Bila menjelaskan kode, gunakan format markdown agar tampil seperti IDE." },
+          ...history
+        ],
+        temperature: 0.7
+      };
+      const data = await cobaGroqDenganBanyakKey(body);
+      output.removeChild(loadingDiv);
+      const reply = data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
+      history.push({ role: "assistant", content: reply });
+      simpanRiwayat();
+      const botDiv = document.createElement("div");
+      botDiv.className = "bubble bot";
+      botDiv.innerHTML = formatMarkdownToHTML(reply);
+      output.appendChild(botDiv);
+      hljs.highlightAll();
+      bicara(reply);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function bicara(teks) {
+      const ucap = new SpeechSynthesisUtterance(teks);
+      ucap.lang = "id-ID";
+      speechSynthesis.speak(ucap);
+    }
+
+    function rekamDanKirimDenganSpeechAPI() {
+      const micBtn = document.getElementById("micBtn");
+      micBtn.classList.add("recording");
+      micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Browser tidak mendukung SpeechRecognition.");
+        micBtn.classList.remove("recording");
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = "id-ID";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event) => {
+        const teks = event.results[0][0].transcript;
         document.getElementById("input").value = teks;
         kirimTeks();
-      } catch (err) {
-        console.error("Gagal mengirim ke Wit.ai:", err);
-      }
+      };
 
-      micBtn.classList.remove("recording");
-      micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-    };
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        alert("Gagal mengenali suara.");
+      };
 
-    recorder.start();
-    setTimeout(() => {
-      recorder.stop();
-      stream.getTracks().forEach(track => track.stop());
-    }, 4000);
-  }
+      recognition.onend = () => {
+        micBtn.classList.remove("recording");
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+      };
 
-  async function convertWebmToWav(webmBlob) {
-    const arrayBuffer = await webmBlob.arrayBuffer();
-    const audioContext = new AudioContext();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    const wavBuffer = encodeWAV(audioBuffer);
-    return new Blob([wavBuffer], { type: "audio/wav" });
-  }
-
-  function encodeWAV(audioBuffer) {
-    const numChannels = audioBuffer.numberOfChannels;
-    const sampleRate = audioBuffer.sampleRate;
-    const bitsPerSample = 16;
-    const samples = audioBuffer.getChannelData(0);
-    const buffer = new ArrayBuffer(44 + samples.length * 2);
-    const view = new DataView(buffer);
-
-    function writeString(view, offset, string) {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
+      recognition.start();
     }
-
-    const blockAlign = numChannels * bitsPerSample / 8;
-    const byteRate = sampleRate * blockAlign;
-
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 36 + samples.length * 2, true);
-    writeString(view, 8, 'WAVE');
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); // PCM
-    view.setUint16(22, numChannels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, byteRate, true);
-    view.setUint16(32, blockAlign, true);
-    view.setUint16(34, bitsPerSample, true);
-    writeString(view, 36, 'data');
-    view.setUint32(40, samples.length * 2, true);
-
-    let offset = 44;
-    for (let i = 0; i < samples.length; i++, offset += 2) {
-      let s = Math.max(-1, Math.min(1, samples[i]));
-      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    }
-
-    return view;
-  }
-</script>
-
+  </script>
 </body>
 </html>
