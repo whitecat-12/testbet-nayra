@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -141,7 +141,7 @@
       <input type="text" id="input" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter') kirimTeks()" />
     </div>
     <button class="send-btn" onclick="kirimTeks()"><i class="fas fa-paper-plane"></i></button>
-    <button class="send-btn" id="micBtn" onclick="toggleMic()"><i class="fas fa-microphone"></i></button>
+    <button class="send-btn" id="micBtn" onclick="rekamDanKirimKeWit()"><i class="fas fa-microphone"></i></button>
   </div>
 
   <script>
@@ -210,7 +210,7 @@
 
       const loadingDiv = document.createElement("div");
       loadingDiv.className = "bubble bot";
-      loadingDiv.textContent = "⏳ Sedang memproses...";
+      loadingDiv.textContent = "\u23F3 Sedang memproses...";
       output.appendChild(loadingDiv);
       output.scrollTop = output.scrollHeight;
 
@@ -229,7 +229,7 @@
       if (data.error) {
         const errorDiv = document.createElement("div");
         errorDiv.className = "bubble bot";
-        errorDiv.textContent = "⚠️ Error: " + data.error.message;
+        errorDiv.textContent = "\u26A0\uFE0F Error: " + data.error.message;
         output.appendChild(errorDiv);
         return;
       }
@@ -253,62 +253,43 @@
       speechSynthesis.speak(ucap);
     }
 
-    // 🎤 Speech-to-Text (STT)
-    const recognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      ? new (window.SpeechRecognition || window.webkitSpeechRecognition)()
-      : null;
+    async function rekamDanKirimKeWit() {
+      const micBtn = document.getElementById("micBtn");
+      micBtn.classList.add("recording");
+      micBtn.innerHTML = '<i class="fas fa-stop"></i>';
 
-    let isListening = false;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
 
-    if (recognition) {
-      recognition.lang = "id-ID";
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      const audioChunks = [];
+      recorder.ondataavailable = e => audioChunks.push(e.data);
 
-      recognition.onresult = (event) => {
-        const teks = event.results[0][0].transcript;
+      recorder.onstop = async () => {
+        const blob = new Blob(audioChunks, { type: "audio/webm" });
+
+        const res = await fetch("https://api.wit.ai/speech?v=20250801", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer AB6AY7LD65IX32KBIAR6V36FOO4JTQLD",
+            "Content-Type": "audio/webm"
+          },
+          body: blob
+        });
+
+        const hasil = await res.json();
+        const teks = hasil.text || "Tidak dikenali";
         document.getElementById("input").value = teks;
+        micBtn.classList.remove("recording");
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
         kirimTeks();
       };
 
-      recognition.onerror = (event) => {
-        alert("🎙️ Error saat merekam: " + event.error);
-        isListening = false;
-        updateMicBtn();
-      };
+      recorder.start();
 
-      recognition.onend = () => {
-        isListening = false;
-        updateMicBtn();
-      };
-    }
-
-    function toggleMic() {
-      if (!recognition) {
-        alert("Browser tidak mendukung pengenalan suara.");
-        return;
-      }
-
-      if (isListening) {
-        recognition.stop();
-        isListening = false;
-      } else {
-        recognition.start();
-        isListening = true;
-      }
-
-      updateMicBtn();
-    }
-
-    function updateMicBtn() {
-      const micBtn = document.getElementById("micBtn");
-      if (isListening) {
-        micBtn.classList.add("recording");
-        micBtn.innerHTML = '<i class="fas fa-stop"></i>';
-      } else {
-        micBtn.classList.remove("recording");
-        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-      }
+      setTimeout(() => {
+        recorder.stop();
+        stream.getTracks().forEach(track => track.stop());
+      }, 4000);
     }
   </script>
 </body>
