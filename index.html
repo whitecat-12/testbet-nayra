@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nayra AI Chat</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
   <style>
     body {
@@ -123,7 +125,6 @@
   </style>
 </head>
 <body>
-
   <div class="top-bar">
     <i class="fas fa-bars"></i>
     <button><i class="fas fa-star"></i> Get Plus</button>
@@ -167,8 +168,19 @@
       document.getElementById("output").innerHTML = "";
     }
 
-    function bersihkanMarkdown(teks) {
-      return teks.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
+    function formatMarkdownToHTML(md) {
+      md = md.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+        return `<pre><code class="language-${lang || ''}">${escapeHtml(code)}</code></pre>`;
+      });
+      md = md.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      md = md.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      return md.replace(/\n/g, "<br>");
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
     }
 
     async function cobaGroqDenganBanyakKey(body) {
@@ -240,8 +252,9 @@
 
       const botDiv = document.createElement("div");
       botDiv.className = "bubble bot";
-      botDiv.textContent = bersihkanMarkdown(reply);
+      botDiv.innerHTML = formatMarkdownToHTML(reply);
       output.appendChild(botDiv);
+      hljs.highlightAll();
 
       bicara(reply);
       output.scrollTop = output.scrollHeight;
@@ -253,7 +266,6 @@
       speechSynthesis.speak(ucap);
     }
 
-    // 🎤 Speech-to-Text (STT)
     const recognition = window.SpeechRecognition || window.webkitSpeechRecognition
       ? new (window.SpeechRecognition || window.webkitSpeechRecognition)()
       : null;
