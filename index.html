@@ -89,32 +89,6 @@
       color: white;
       cursor: pointer;
     }
-
-    .btns {
-      position: absolute;
-      top: 55px;
-      right: 10px;
-      display: flex;
-      gap: 8px;
-    }
-
-    .btns button {
-      background-color: #444;
-      border: none;
-      border-radius: 10px;
-      padding: 4px 8px;
-      font-size: 12px;
-      color: white;
-      cursor: pointer;
-    }
-
-    video {
-      display: none;
-    }
-
-    .show {
-      display: block !important;
-    }
   </style>
 </head>
 <body>
@@ -126,15 +100,8 @@
     <i class="fas fa-rotate-right"></i>
   </div>
 
-  <!-- Tombol tambahan -->
-  <div class="btns">
-    <button id="micButton"><i class="fas fa-microphone"></i></button>
-    <button id="cancelButton"><i class="fas fa-stop"></i></button>
-    <button id="resetButton"><i class="fas fa-refresh"></i></button>
-  </div>
-
   <!-- Konten utama -->
-  <div class="main">
+  <div class="main" id="output">
     Ready when you are.
   </div>
 
@@ -143,15 +110,10 @@
     <div class="input-container">
       <i class="fas fa-plus"></i>
       <span style="margin-right: 10px; font-size: 14px;">Tools</span>
-      <input type="text" placeholder="Ask anything" id="userInput" />
+      <input type="text" id="input" placeholder="Ask anything" />
     </div>
-    <button class="send-btn" id="sendButton"><i class="fas fa-paper-plane"></i></button>
+    <button class="send-btn" onclick="kirimTeks()"><i class="fas fa-paper-plane"></i></button>
   </div>
-
-  <!-- Video Placeholder -->
-  <video id="idle" class="show" src=""></video>
-  <video id="avatar" src=""></video>
-  <video id="dance" src=""></video>
 
   <script>
     const GROQ_KEYS = [
@@ -159,88 +121,19 @@
       "Bearer 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"
     ];
 
-    const idle = document.getElementById("idle");
-    const avatar = document.getElementById("avatar");
-    const dance = document.getElementById("dance");
-
-    let recognition = null;
-    let ucap = null;
     let history = ambilRiwayat();
-
-    function getNamaPengguna() {
-      return localStorage.getItem("namaPengguna") || null;
-    }
-
-    function setNamaPengguna(nama) {
-      localStorage.setItem("namaPengguna", nama);
-    }
-
-    function simpanRiwayat() {
-      localStorage.setItem("riwayatChat", JSON.stringify(history));
-    }
 
     function ambilRiwayat() {
       const data = localStorage.getItem("riwayatChat");
       return data ? JSON.parse(data) : [];
     }
 
-    function hapusRiwayat() {
-      localStorage.removeItem("riwayatChat");
-      history = [];
-    }
-
-    function show(video) {
-      idle.classList.remove("show");
-      avatar.classList.remove("show");
-      dance.classList.remove("show");
-      video.classList.add("show");
+    function simpanRiwayat() {
+      localStorage.setItem("riwayatChat", JSON.stringify(history));
     }
 
     function bersihkanMarkdown(teks) {
       return teks.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
-    }
-
-    async function mulaiRekam() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Perangkat tidak mendukung speech recognition.");
-        return;
-      }
-
-      recognition = new SpeechRecognition();
-      recognition.lang = 'id-ID';
-      recognition.interimResults = false;
-
-      recognition.onresult = async function(event) {
-        const teks = event.results[0][0].transcript.trim();
-        recognition.stop();
-        recognition = null;
-
-        if (/dance|nari|menari/i.test(teks)) {
-          mulaiDance();
-          return;
-        }
-
-        const regexNama = /nama(?:ku| saya)?(?: adalah)? ([a-zA-Z]+)/i;
-        const match = teks.match(regexNama);
-        if (match) {
-          const nama = match[1];
-          setNamaPengguna(nama);
-          bicara(`Hai ${nama}, senang bertemu denganmu!`);
-          return;
-        }
-
-        const jawaban = await tanyaAI(teks);
-        bicara(bersihkanMarkdown(jawaban));
-      };
-
-      recognition.onerror = function(event) {
-        console.error("Error:", event.error);
-        recognition.stop();
-        recognition = null;
-      };
-
-      recognition.start();
     }
 
     async function cobaGroqDenganBanyakKey(body) {
@@ -270,87 +163,45 @@
       return { error: { message: "Semua API gagal dihubungi." } };
     }
 
-    async function tanyaAI(teks) {
-      const nama = getNamaPengguna();
-      const systemPrompt = `Kamu adalah Nayra AI, asisten pintar dari teta.education. ${nama ? `Nama pengguna adalah ${nama}.` : ""} Kamu memiliki tubuh virtual yang dapat dilihat oleh pengguna dalam bentuk 3d model. Kamu bisa berbicara, menari, dan melakukan gerakan tertentu. Jawablah dengan ramah, sopan, dan mudah dimengerti oleh pengguna dari Indonesia.`;
+    async function kirimTeks() {
+      const input = document.getElementById("input");
+      const output = document.getElementById("output");
+      const teks = input.value.trim();
+      if (!teks) return;
 
+      output.textContent = "⏳ Sedang memproses...";
       history.push({ role: "user", content: teks });
 
       const body = {
         model: "llama3-8b-8192",
-        messages: [{ role: "system", content: systemPrompt }, ...history],
+        messages: [
+          { role: "system", content: "Kamu adalah Nayra AI, asisten pintar dari teta.education. Jawablah dengan ramah dan mudah dimengerti." },
+          ...history
+        ],
         temperature: 0.7
       };
 
       const data = await cobaGroqDenganBanyakKey(body);
 
       if (data.error) {
-        return "⚠️ Error: " + data.error.message;
+        output.textContent = "⚠️ Error: " + data.error.message;
+        return;
       }
 
       const reply = data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
       history.push({ role: "assistant", content: reply });
       simpanRiwayat();
 
-      return reply;
-    }
-
-    function mulaiDance() {
-      show(dance);
-      dance.currentTime = 0;
-      dance.play().catch(err => console.warn("Video dance gagal:", err));
-      dance.onended = () => show(idle);
+      output.textContent = bersihkanMarkdown(reply);
+      bicara(reply);
+      input.value = "";
     }
 
     function bicara(teks) {
-      show(avatar);
-      avatar.currentTime = 0;
-      avatar.play().catch(err => console.warn("Video gagal:", err));
-
-      ucap = new SpeechSynthesisUtterance(teks);
+      const ucap = new SpeechSynthesisUtterance(teks);
       ucap.lang = "id-ID";
       speechSynthesis.speak(ucap);
-
-      ucap.onend = () => {
-        avatar.pause();
-        show(idle);
-        ucap = null;
-      };
     }
-
-    function cancelSemua() {
-      if (recognition) recognition.abort();
-      if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
-
-      idle.pause(); avatar.pause(); dance.pause();
-      show(idle);
-      idle.currentTime = 0;
-      idle.play().catch(err => console.warn("Idle gagal jalan:", err));
-    }
-
-    function resetKonteks() {
-      hapusRiwayat();
-      bicara("Konteks telah dihapus. Kita bisa mulai percakapan baru.");
-    }
-
-    async function sendChat() {
-      const input = document.getElementById("userInput");
-      const teks = input.value.trim();
-      if (!teks) return;
-      input.value = "";
-
-      const jawaban = await tanyaAI(teks);
-      bicara(bersihkanMarkdown(jawaban));
-    }
-
-    // Tombol kontrol
-    document.getElementById("micButton").onclick = mulaiRekam;
-    document.getElementById("cancelButton").onclick = cancelSemua;
-    document.getElementById("resetButton").onclick = resetKonteks;
-    document.getElementById("sendButton").onclick = sendChat;
-    document.getElementById("userInput").addEventListener("keydown", function(e) {
-      if (e.key === "Enter") sendChat();
-    });
   </script>
 </body>
 </html>
