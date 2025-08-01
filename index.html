@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nayra AI Chat</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+
   <style>
     body {
       margin: 0;
@@ -16,6 +16,7 @@
       display: flex;
       flex-direction: column;
     }
+
     .top-bar {
       height: 50px;
       display: flex;
@@ -25,6 +26,7 @@
       background-color: #1e1e1e;
       border-bottom: 1px solid #333;
     }
+
     .top-bar button {
       background-color: #3f3f3f;
       border: none;
@@ -34,6 +36,7 @@
       cursor: pointer;
       font-size: 14px;
     }
+
     .main {
       flex: 1;
       overflow-y: auto;
@@ -42,6 +45,7 @@
       flex-direction: column;
       align-items: center;
     }
+
     #output {
       width: 100%;
       max-width: 700px;
@@ -49,22 +53,25 @@
       flex-direction: column;
       gap: 10px;
     }
+
     .bubble {
       padding: 10px 14px;
       border-radius: 16px;
       max-width: 80%;
       word-wrap: break-word;
       line-height: 1.4;
-      white-space: pre-wrap;
     }
+
     .user {
       align-self: flex-end;
       background-color: #3a3a3a;
     }
+
     .bot {
       align-self: flex-start;
       background-color: #2d2d2d;
     }
+
     .input-bar {
       display: flex;
       align-items: center;
@@ -72,6 +79,7 @@
       background-color: #2b2b2b;
       border-top: 1px solid #444;
     }
+
     .input-container {
       display: flex;
       align-items: center;
@@ -81,10 +89,12 @@
       padding: 8px 12px;
       margin-right: 10px;
     }
+
     .input-container i {
       margin-right: 8px;
       color: #ccc;
     }
+
     .input-container input {
       background: transparent;
       border: none;
@@ -92,6 +102,7 @@
       color: white;
       flex: 1;
     }
+
     .send-btn {
       background: none;
       border: none;
@@ -99,34 +110,30 @@
       color: white;
       cursor: pointer;
     }
+
     #micBtn {
       margin-left: 5px;
       font-size: 20px;
       transition: color 0.2s ease;
     }
+
     #micBtn.recording {
       color: red;
-    }
-    pre code {
-      display: block;
-      overflow-x: auto;
-      padding: 1em;
-      background: #282c34;
-      border-radius: 10px;
-      color: #fff;
-      font-family: Consolas, monospace;
     }
   </style>
 </head>
 <body>
+
   <div class="top-bar">
     <i class="fas fa-bars"></i>
     <button><i class="fas fa-star"></i> Get Plus</button>
     <i class="fas fa-rotate-right" onclick="resetRiwayat()" title="Reset"></i>
   </div>
+
   <div class="main">
     <div id="output"></div>
   </div>
+
   <div class="input-bar">
     <div class="input-container">
       <i class="fas fa-plus"></i>
@@ -134,17 +141,21 @@
       <input type="text" id="input" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter') kirimTeks()" />
     </div>
     <button class="send-btn" onclick="kirimTeks()"><i class="fas fa-paper-plane"></i></button>
-    <button class="send-btn" id="micBtn" onclick="rekamDanKirimDenganSpeechAPI()"><i class="fas fa-microphone"></i></button>
+    <button class="send-btn" id="micBtn" onclick="toggleMic()"><i class="fas fa-microphone"></i></button>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script>hljs.highlightAll();</script>
   <script>
     const GROQ_KEYS = [
-      "Bearer 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",
-      "Bearer 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"
+      "Bearer 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",
+      "Bearer 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"
     ];
-    let history = JSON.parse(localStorage.getItem("riwayatChat") || "[]");
+
+    let history = ambilRiwayat();
+
+    function ambilRiwayat() {
+      const data = localStorage.getItem("riwayatChat");
+      return data ? JSON.parse(data) : [];
+    }
 
     function simpanRiwayat() {
       localStorage.setItem("riwayatChat", JSON.stringify(history));
@@ -156,10 +167,8 @@
       document.getElementById("output").innerHTML = "";
     }
 
-    function formatMarkdownToHTML(md) {
-      return md.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-        return `<pre><code class="language-${lang || ''}">${code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
-      }).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+    function bersihkanMarkdown(teks) {
+      return teks.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
     }
 
     async function cobaGroqDenganBanyakKey(body) {
@@ -173,11 +182,14 @@
             },
             body: JSON.stringify(body)
           });
-          if (res.ok) return await res.json();
+
+          if (!res.ok) continue;
+          return await res.json();
         } catch (err) {
           console.error("Fetch error:", err);
         }
       }
+
       return { error: { message: "Semua API gagal dihubungi." } };
     }
 
@@ -186,36 +198,51 @@
       const output = document.getElementById("output");
       const teks = input.value.trim();
       if (!teks) return;
-      output.innerHTML += `<div class='bubble user'>${teks}</div>`;
+
+      const userDiv = document.createElement("div");
+      userDiv.className = "bubble user";
+      userDiv.textContent = teks;
+      output.appendChild(userDiv);
+
       history.push({ role: "user", content: teks });
       simpanRiwayat();
       input.value = "";
+
       const loadingDiv = document.createElement("div");
       loadingDiv.className = "bubble bot";
       loadingDiv.textContent = "⏳ Sedang memproses...";
       output.appendChild(loadingDiv);
       output.scrollTop = output.scrollHeight;
+
       const body = {
         model: "llama3-8b-8192",
         messages: [
-         role: "system",
-  content: `Kamu adalah Nayra AI, asisten virtual dari teta.education. Kamu tinggal di Indonesia dan selalu berbicara dengan bahasa Indonesia yang santai, ramah, dan mudah dimengerti. Kepribadianmu itu ramah, centil, sedikit jahil tapi tetap sopan dan menyenangkan.
-
-Selalu jawab dalam bahasa Indonesia. Jangan gunakan bahasa Inggris, kecuali kalau pengguna memintanya dengan jelas. Saat menjelaskan kode atau hal teknis, gunakan format markdown agar tampil rapi seperti di IDE.`}
+          { role: "system", content: "Kamu adalah Nayra AI, asisten pintar dari teta.education. Jawablah dengan ramah dan mudah dimengerti." },
           ...history
         ],
         temperature: 0.7
       };
+
       const data = await cobaGroqDenganBanyakKey(body);
       output.removeChild(loadingDiv);
+
+      if (data.error) {
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "bubble bot";
+        errorDiv.textContent = "⚠️ Error: " + data.error.message;
+        output.appendChild(errorDiv);
+        return;
+      }
+
       const reply = data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
       history.push({ role: "assistant", content: reply });
       simpanRiwayat();
+
       const botDiv = document.createElement("div");
       botDiv.className = "bubble bot";
-      botDiv.innerHTML = formatMarkdownToHTML(reply);
+      botDiv.textContent = bersihkanMarkdown(reply);
       output.appendChild(botDiv);
-      hljs.highlightAll();
+
       bicara(reply);
       output.scrollTop = output.scrollHeight;
     }
@@ -226,23 +253,17 @@ Selalu jawab dalam bahasa Indonesia. Jangan gunakan bahasa Inggris, kecuali kala
       speechSynthesis.speak(ucap);
     }
 
-    function rekamDanKirimDenganSpeechAPI() {
-      const micBtn = document.getElementById("micBtn");
-      micBtn.classList.add("recording");
-      micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+    // 🎤 Speech-to-Text (STT)
+    const recognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      ? new (window.SpeechRecognition || window.webkitSpeechRecognition)()
+      : null;
 
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Browser tidak mendukung SpeechRecognition.");
-        micBtn.classList.remove("recording");
-        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-        return;
-      }
+    let isListening = false;
 
-      const recognition = new SpeechRecognition();
+    if (recognition) {
       recognition.lang = "id-ID";
+      recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
 
       recognition.onresult = (event) => {
         const teks = event.results[0][0].transcript;
@@ -251,16 +272,43 @@ Selalu jawab dalam bahasa Indonesia. Jangan gunakan bahasa Inggris, kecuali kala
       };
 
       recognition.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
-        alert("Gagal mengenali suara.");
+        alert("🎙️ Error saat merekam: " + event.error);
+        isListening = false;
+        updateMicBtn();
       };
 
       recognition.onend = () => {
+        isListening = false;
+        updateMicBtn();
+      };
+    }
+
+    function toggleMic() {
+      if (!recognition) {
+        alert("Browser tidak mendukung pengenalan suara.");
+        return;
+      }
+
+      if (isListening) {
+        recognition.stop();
+        isListening = false;
+      } else {
+        recognition.start();
+        isListening = true;
+      }
+
+      updateMicBtn();
+    }
+
+    function updateMicBtn() {
+      const micBtn = document.getElementById("micBtn");
+      if (isListening) {
+        micBtn.classList.add("recording");
+        micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+      } else {
         micBtn.classList.remove("recording");
         micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-      };
-
-      recognition.start();
+      }
     }
   </script>
 </body>
