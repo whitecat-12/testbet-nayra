@@ -43,12 +43,37 @@
 
     .main {
       flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 18px;
-      text-align: center;
+      overflow-y: auto;
       padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #output {
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 16px;
+      max-width: 80%;
+      word-wrap: break-word;
+      line-height: 1.4;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #3a3a3a;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background-color: #2d2d2d;
     }
 
     .input-bar {
@@ -97,12 +122,12 @@
   <div class="top-bar">
     <i class="fas fa-bars"></i>
     <button><i class="fas fa-star"></i> Get Plus</button>
-    <i class="fas fa-rotate-right"></i>
+    <i class="fas fa-rotate-right" onclick="resetRiwayat()" title="Reset"></i>
   </div>
 
   <!-- Konten utama -->
-  <div class="main" id="output">
-    Ready when you are.
+  <div class="main">
+    <div id="output"></div>
   </div>
 
   <!-- Input bar -->
@@ -110,7 +135,7 @@
     <div class="input-container">
       <i class="fas fa-plus"></i>
       <span style="margin-right: 10px; font-size: 14px;">Tools</span>
-      <input type="text" id="input" placeholder="Ask anything" />
+      <input type="text" id="input" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter') kirimTeks()" />
     </div>
     <button class="send-btn" onclick="kirimTeks()"><i class="fas fa-paper-plane"></i></button>
   </div>
@@ -130,6 +155,12 @@
 
     function simpanRiwayat() {
       localStorage.setItem("riwayatChat", JSON.stringify(history));
+    }
+
+    function resetRiwayat() {
+      localStorage.removeItem("riwayatChat");
+      history = [];
+      document.getElementById("output").innerHTML = "";
     }
 
     function bersihkanMarkdown(teks) {
@@ -169,8 +200,22 @@
       const teks = input.value.trim();
       if (!teks) return;
 
-      output.textContent = "⏳ Sedang memproses...";
+      // Tampilkan bubble user
+      const userDiv = document.createElement("div");
+      userDiv.className = "bubble user";
+      userDiv.textContent = teks;
+      output.appendChild(userDiv);
+
       history.push({ role: "user", content: teks });
+      simpanRiwayat();
+      input.value = "";
+
+      // Tampilkan status memproses
+      const loadingDiv = document.createElement("div");
+      loadingDiv.className = "bubble bot";
+      loadingDiv.textContent = "⏳ Sedang memproses...";
+      output.appendChild(loadingDiv);
+      output.scrollTop = output.scrollHeight;
 
       const body = {
         model: "llama3-8b-8192",
@@ -182,9 +227,13 @@
       };
 
       const data = await cobaGroqDenganBanyakKey(body);
+      output.removeChild(loadingDiv);
 
       if (data.error) {
-        output.textContent = "⚠️ Error: " + data.error.message;
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "bubble bot";
+        errorDiv.textContent = "⚠️ Error: " + data.error.message;
+        output.appendChild(errorDiv);
         return;
       }
 
@@ -192,9 +241,13 @@
       history.push({ role: "assistant", content: reply });
       simpanRiwayat();
 
-      output.textContent = bersihkanMarkdown(reply);
+      const botDiv = document.createElement("div");
+      botDiv.className = "bubble bot";
+      botDiv.textContent = bersihkanMarkdown(reply);
+      output.appendChild(botDiv);
+
       bicara(reply);
-      input.value = "";
+      output.scrollTop = output.scrollHeight;
     }
 
     function bicara(teks) {
