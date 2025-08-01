@@ -4,11 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nayra AI Chat</title>
-
-  <!-- Font Awesome -->
-  <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-    crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
 
   <style>
     body {
@@ -187,12 +183,7 @@
             body: JSON.stringify(body)
           });
 
-          if (!res.ok) {
-            const err = await res.json();
-            console.warn("Gagal dengan key:", key, err.error?.message);
-            continue;
-          }
-
+          if (!res.ok) continue;
           return await res.json();
         } catch (err) {
           console.error("Fetch error:", err);
