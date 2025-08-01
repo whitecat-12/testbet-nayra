@@ -143,9 +143,9 @@
     <div class="input-container">
       <i class="fas fa-plus"></i>
       <span style="margin-right: 10px; font-size: 14px;">Tools</span>
-      <input type="text" placeholder="Ask anything" />
+      <input type="text" placeholder="Ask anything" id="userInput" />
     </div>
-    <button class="send-btn"><i class="fas fa-paper-plane"></i></button>
+    <button class="send-btn" id="sendButton"><i class="fas fa-paper-plane"></i></button>
   </div>
 
   <!-- Video Placeholder -->
@@ -333,10 +333,24 @@
       bicara("Konteks telah dihapus. Kita bisa mulai percakapan baru.");
     }
 
+    async function sendChat() {
+      const input = document.getElementById("userInput");
+      const teks = input.value.trim();
+      if (!teks) return;
+      input.value = "";
+
+      const jawaban = await tanyaAI(teks);
+      bicara(bersihkanMarkdown(jawaban));
+    }
+
     // Tombol kontrol
     document.getElementById("micButton").onclick = mulaiRekam;
     document.getElementById("cancelButton").onclick = cancelSemua;
     document.getElementById("resetButton").onclick = resetKonteks;
+    document.getElementById("sendButton").onclick = sendChat;
+    document.getElementById("userInput").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") sendChat();
+    });
   </script>
 </body>
 </html>
