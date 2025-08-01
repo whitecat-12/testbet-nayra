@@ -1,11 +1,10 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nayra AI Chat</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
-
   <style>
     body {
       margin: 0;
@@ -16,7 +15,6 @@
       display: flex;
       flex-direction: column;
     }
-
     .top-bar {
       height: 50px;
       display: flex;
@@ -26,7 +24,6 @@
       background-color: #1e1e1e;
       border-bottom: 1px solid #333;
     }
-
     .top-bar button {
       background-color: #3f3f3f;
       border: none;
@@ -36,7 +33,6 @@
       cursor: pointer;
       font-size: 14px;
     }
-
     .main {
       flex: 1;
       overflow-y: auto;
@@ -45,7 +41,6 @@
       flex-direction: column;
       align-items: center;
     }
-
     #output {
       width: 100%;
       max-width: 700px;
@@ -53,7 +48,6 @@
       flex-direction: column;
       gap: 10px;
     }
-
     .bubble {
       padding: 10px 14px;
       border-radius: 16px;
@@ -61,17 +55,14 @@
       word-wrap: break-word;
       line-height: 1.4;
     }
-
     .user {
       align-self: flex-end;
       background-color: #3a3a3a;
     }
-
     .bot {
       align-self: flex-start;
       background-color: #2d2d2d;
     }
-
     .input-bar {
       display: flex;
       align-items: center;
@@ -79,7 +70,6 @@
       background-color: #2b2b2b;
       border-top: 1px solid #444;
     }
-
     .input-container {
       display: flex;
       align-items: center;
@@ -89,12 +79,10 @@
       padding: 8px 12px;
       margin-right: 10px;
     }
-
     .input-container i {
       margin-right: 8px;
       color: #ccc;
     }
-
     .input-container input {
       background: transparent;
       border: none;
@@ -102,7 +90,6 @@
       color: white;
       flex: 1;
     }
-
     .send-btn {
       background: none;
       border: none;
@@ -110,30 +97,25 @@
       color: white;
       cursor: pointer;
     }
-
     #micBtn {
       margin-left: 5px;
       font-size: 20px;
       transition: color 0.2s ease;
     }
-
     #micBtn.recording {
       color: red;
     }
   </style>
 </head>
 <body>
-
   <div class="top-bar">
     <i class="fas fa-bars"></i>
     <button><i class="fas fa-star"></i> Get Plus</button>
     <i class="fas fa-rotate-right" onclick="resetRiwayat()" title="Reset"></i>
   </div>
-
   <div class="main">
     <div id="output"></div>
   </div>
-
   <div class="input-bar">
     <div class="input-container">
       <i class="fas fa-plus"></i>
@@ -143,34 +125,23 @@
     <button class="send-btn" onclick="kirimTeks()"><i class="fas fa-paper-plane"></i></button>
     <button class="send-btn" id="micBtn" onclick="rekamDanKirimKeWit()"><i class="fas fa-microphone"></i></button>
   </div>
-
   <script>
     const GROQ_KEYS = [
       "Bearer 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",
       "Bearer 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"
     ];
-
-    let history = ambilRiwayat();
-
-    function ambilRiwayat() {
-      const data = localStorage.getItem("riwayatChat");
-      return data ? JSON.parse(data) : [];
-    }
-
+    let history = JSON.parse(localStorage.getItem("riwayatChat") || "[]");
     function simpanRiwayat() {
       localStorage.setItem("riwayatChat", JSON.stringify(history));
     }
-
     function resetRiwayat() {
       localStorage.removeItem("riwayatChat");
       history = [];
       document.getElementById("output").innerHTML = "";
     }
-
     function bersihkanMarkdown(teks) {
       return teks.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
     }
-
     async function cobaGroqDenganBanyakKey(body) {
       for (const key of GROQ_KEYS) {
         try {
@@ -182,38 +153,27 @@
             },
             body: JSON.stringify(body)
           });
-
-          if (!res.ok) continue;
-          return await res.json();
+          if (res.ok) return await res.json();
         } catch (err) {
           console.error("Fetch error:", err);
         }
       }
-
       return { error: { message: "Semua API gagal dihubungi." } };
     }
-
     async function kirimTeks() {
       const input = document.getElementById("input");
       const output = document.getElementById("output");
       const teks = input.value.trim();
       if (!teks) return;
-
-      const userDiv = document.createElement("div");
-      userDiv.className = "bubble user";
-      userDiv.textContent = teks;
-      output.appendChild(userDiv);
-
+      output.innerHTML += `<div class='bubble user'>${teks}</div>`;
       history.push({ role: "user", content: teks });
       simpanRiwayat();
       input.value = "";
-
       const loadingDiv = document.createElement("div");
       loadingDiv.className = "bubble bot";
-      loadingDiv.textContent = "\u23F3 Sedang memproses...";
+      loadingDiv.textContent = "⏳ Sedang memproses...";
       output.appendChild(loadingDiv);
       output.scrollTop = output.scrollHeight;
-
       const body = {
         model: "llama3-8b-8192",
         messages: [
@@ -222,52 +182,34 @@
         ],
         temperature: 0.7
       };
-
       const data = await cobaGroqDenganBanyakKey(body);
       output.removeChild(loadingDiv);
-
-      if (data.error) {
-        const errorDiv = document.createElement("div");
-        errorDiv.className = "bubble bot";
-        errorDiv.textContent = "\u26A0\uFE0F Error: " + data.error.message;
-        output.appendChild(errorDiv);
-        return;
-      }
-
       const reply = data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
       history.push({ role: "assistant", content: reply });
       simpanRiwayat();
-
       const botDiv = document.createElement("div");
       botDiv.className = "bubble bot";
       botDiv.textContent = bersihkanMarkdown(reply);
       output.appendChild(botDiv);
-
       bicara(reply);
       output.scrollTop = output.scrollHeight;
     }
-
     function bicara(teks) {
       const ucap = new SpeechSynthesisUtterance(teks);
       ucap.lang = "id-ID";
       speechSynthesis.speak(ucap);
     }
-
     async function rekamDanKirimKeWit() {
       const micBtn = document.getElementById("micBtn");
       micBtn.classList.add("recording");
       micBtn.innerHTML = '<i class="fas fa-stop"></i>';
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-
       const audioChunks = [];
       recorder.ondataavailable = e => audioChunks.push(e.data);
-
       recorder.onstop = async () => {
         const blob = new Blob(audioChunks, { type: "audio/webm" });
-
-        const res = await fetch("https://api.wit.ai/speech?v=20250801", {
+        const res = await fetch("https://api.wit.ai/speech", {
           method: "POST",
           headers: {
             "Authorization": "Bearer AB6AY7LD65IX32KBIAR6V36FOO4JTQLD",
@@ -275,7 +217,6 @@
           },
           body: blob
         });
-
         const hasil = await res.json();
         const teks = hasil.text || "Tidak dikenali";
         document.getElementById("input").value = teks;
@@ -283,9 +224,7 @@
         micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
         kirimTeks();
       };
-
       recorder.start();
-
       setTimeout(() => {
         recorder.stop();
         stream.getTracks().forEach(track => track.stop());
