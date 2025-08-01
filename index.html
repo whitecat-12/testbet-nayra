@@ -114,6 +114,16 @@
       color: white;
       cursor: pointer;
     }
+
+    #micBtn {
+      margin-left: 5px;
+      font-size: 20px;
+      transition: color 0.2s ease;
+    }
+
+    #micBtn.recording {
+      color: red;
+    }
   </style>
 </head>
 <body>
@@ -138,6 +148,7 @@
       <input type="text" id="input" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter') kirimTeks()" />
     </div>
     <button class="send-btn" onclick="kirimTeks()"><i class="fas fa-paper-plane"></i></button>
+    <button class="send-btn" id="micBtn" onclick="toggleMic()"><i class="fas fa-microphone"></i></button>
   </div>
 
   <script>
@@ -200,7 +211,6 @@
       const teks = input.value.trim();
       if (!teks) return;
 
-      // Tampilkan bubble user
       const userDiv = document.createElement("div");
       userDiv.className = "bubble user";
       userDiv.textContent = teks;
@@ -210,7 +220,6 @@
       simpanRiwayat();
       input.value = "";
 
-      // Tampilkan status memproses
       const loadingDiv = document.createElement("div");
       loadingDiv.className = "bubble bot";
       loadingDiv.textContent = "⏳ Sedang memproses...";
@@ -254,6 +263,62 @@
       const ucap = new SpeechSynthesisUtterance(teks);
       ucap.lang = "id-ID";
       speechSynthesis.speak(ucap);
+    }
+
+    // 🎤 Rekam suara via WebRTC
+    let isRecording = false;
+    let mediaRecorder;
+    let audioChunks = [];
+
+    async function toggleMic() {
+      const micBtn = document.getElementById("micBtn");
+
+      if (isRecording) {
+        stopRecording();
+        micBtn.classList.remove("recording");
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+      } else {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+
+          mediaRecorder.onstart = () => {
+            audioChunks = [];
+          };
+
+          mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+          };
+
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            const reader = new FileReader();
+
+            reader.onload = async () => {
+              // Dummy transkripsi (ganti dengan STT aslinya jika ada)
+              const teksDummy = "[Audio dikonversi ke teks di sini]";
+              document.getElementById("input").value = teksDummy;
+            };
+            reader.readAsDataURL(audioBlob);
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          micBtn.classList.add("recording");
+          micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+
+        } catch (err) {
+          console.error("Mic error:", err);
+          alert("🎙️ Gagal mengakses mikrofon. Pastikan izin diizinkan.");
+        }
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+      }
     }
   </script>
 </body>
