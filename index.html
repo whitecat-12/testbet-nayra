@@ -128,19 +128,16 @@
 </head>
 <body>
 
-  <!-- Top bar -->
   <div class="top-bar">
     <i class="fas fa-bars"></i>
     <button><i class="fas fa-star"></i> Get Plus</button>
     <i class="fas fa-rotate-right" onclick="resetRiwayat()" title="Reset"></i>
   </div>
 
-  <!-- Konten utama -->
   <div class="main">
     <div id="output"></div>
   </div>
 
-  <!-- Input bar -->
   <div class="input-bar">
     <div class="input-container">
       <i class="fas fa-plus"></i>
@@ -265,59 +262,61 @@
       speechSynthesis.speak(ucap);
     }
 
-    // 🎤 Rekam suara via WebRTC
-    let isRecording = false;
-    let mediaRecorder;
-    let audioChunks = [];
+    // 🎤 Speech-to-Text (STT)
+    const recognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      ? new (window.SpeechRecognition || window.webkitSpeechRecognition)()
+      : null;
 
-    async function toggleMic() {
-      const micBtn = document.getElementById("micBtn");
+    let isListening = false;
 
-      if (isRecording) {
-        stopRecording();
-        micBtn.classList.remove("recording");
-        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-      } else {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream);
+    if (recognition) {
+      recognition.lang = "id-ID";
+      recognition.continuous = false;
+      recognition.interimResults = false;
 
-          mediaRecorder.onstart = () => {
-            audioChunks = [];
-          };
+      recognition.onresult = (event) => {
+        const teks = event.results[0][0].transcript;
+        document.getElementById("input").value = teks;
+        kirimTeks();
+      };
 
-          mediaRecorder.ondataavailable = event => {
-            audioChunks.push(event.data);
-          };
+      recognition.onerror = (event) => {
+        alert("🎙️ Error saat merekam: " + event.error);
+        isListening = false;
+        updateMicBtn();
+      };
 
-          mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-            const reader = new FileReader();
-
-            reader.onload = async () => {
-              // Dummy transkripsi (ganti dengan STT aslinya jika ada)
-              const teksDummy = "[Audio dikonversi ke teks di sini]";
-              document.getElementById("input").value = teksDummy;
-            };
-            reader.readAsDataURL(audioBlob);
-          };
-
-          mediaRecorder.start();
-          isRecording = true;
-          micBtn.classList.add("recording");
-          micBtn.innerHTML = '<i class="fas fa-stop"></i>';
-
-        } catch (err) {
-          console.error("Mic error:", err);
-          alert("🎙️ Gagal mengakses mikrofon. Pastikan izin diizinkan.");
-        }
-      }
+      recognition.onend = () => {
+        isListening = false;
+        updateMicBtn();
+      };
     }
 
-    function stopRecording() {
-      if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
-        isRecording = false;
+    function toggleMic() {
+      if (!recognition) {
+        alert("Browser tidak mendukung pengenalan suara.");
+        return;
+      }
+
+      if (isListening) {
+        recognition.stop();
+        isListening = false;
+      } else {
+        recognition.start();
+        isListening = true;
+      }
+
+      updateMicBtn();
+    }
+
+    function updateMicBtn() {
+      const micBtn = document.getElementById("micBtn");
+      if (isListening) {
+        micBtn.classList.add("recording");
+        micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+      } else {
+        micBtn.classList.remove("recording");
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
       }
     }
   </script>
