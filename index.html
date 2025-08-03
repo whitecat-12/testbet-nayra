@@ -253,6 +253,135 @@
       errorDiv.className = "bubble bot";
       errorDiv.textContent = "⚠️ Error: " + data.error.message;
       output.appendChild(errorDiv);
+<script>
+  const GROQ_KEYS = [
+    "Bearer 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",
+    "Bearer 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"
+  ];
+
+  let history = ambilRiwayat();
+
+  // --- Memori Chat ---
+  function ambilRiwayat() {
+    const data = localStorage.getItem("riwayatChat");
+    return data ? JSON.parse(data) : [];
+  }
+
+  function simpanRiwayat() {
+    localStorage.setItem("riwayatChat", JSON.stringify(history));
+  }
+
+  function resetRiwayat() {
+    localStorage.removeItem("riwayatChat");
+    history = [];
+    document.getElementById("output").innerHTML = "";
+  }
+
+  // --- Memori Nama User ---
+  function simpanNama(nama) {
+    localStorage.setItem("namaUser", nama);
+  }
+
+  function ambilNama() {
+    return localStorage.getItem("namaUser") || null;
+  }
+
+  function formatMarkdownToHTML(md) {
+    md = md.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+      return `<pre><code class="language-${lang || ''}">${escapeHtml(code)}</code></pre>`;
+    });
+    md = md.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    md = md.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    return md.replace(/\n/g, "<br>");
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+  }
+
+  async function cobaGroqDenganBanyakKey(body) {
+    for (const key of GROQ_KEYS) {
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": key,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!res.ok) continue;
+        return await res.json();
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    }
+    return { error: { message: "Semua API gagal dihubungi." } };
+  }
+
+  async function kirimTeks() {
+    const input = document.getElementById("input");
+    const output = document.getElementById("output");
+    const teks = input.value.trim();
+    if (!teks) return;
+
+    // --- Tampilkan chat user ---
+    const userDiv = document.createElement("div");
+    userDiv.className = "bubble user";
+    userDiv.textContent = teks;
+    output.appendChild(userDiv);
+
+    history.push({ role: "user", content: teks });
+    simpanRiwayat();
+    input.value = "";
+
+    // --- Loading ---
+    const loadingDiv = document.createElement("div");
+    loadingDiv.className = "bubble bot";
+    loadingDiv.textContent = "⏳ Sedang memproses...";
+    output.appendChild(loadingDiv);
+    output.scrollTop = output.scrollHeight;
+
+    // --- Cek jika user menyebut nama ---
+    const lowerTeks = teks.toLowerCase();
+    if (lowerTeks.startsWith("nama saya") || lowerTeks.startsWith("namaku")) {
+      const nama = teks.split(" ").pop();
+      simpanNama(nama);
+    }
+
+    const namaUser = ambilNama();
+
+    // --- Prompt Sistem Dibagi 2 ---
+    const systemPrompts = [
+      "Kamu adalah Nayra AI dari teta education, asisten ramah pintar yang dikembangkan oleh teta edukation, jawaban wajib di jawab dengan bahasa Indonesia. Jawabanmu sopan, jelas, dan mudah dimengerti.",
+      "Jika ada pertanyaan tentang LGBT atau perilaku yang dilarang agama, jelaskan bahwa semua agama utama (Islam, Kristen, Hindu, Buddha) melarang perilaku itu. Sampaikan dengan sopan, berikan saran positif untuk mendekatkan diri kepada Tuhan, mencari bimbingan agama, dan fokus pada kebaikan.",
+      namaUser ? `Nama pengguna adalah ${namaUser}. Sapa dia dengan ramah.` : ""
+    ];
+
+    // --- Filter topik sensitif ---
+    const sensitiveWords = ["lgbt", "gay", "lesbian", "homo", "biseks"];
+    const isSensitive = sensitiveWords.some(word => lowerTeks.includes(word));
+
+    const body = {
+      model: "llama3-8b-8192",
+      messages: [
+        { role: "system", content: systemPrompts.join(" ") },
+        ...history
+      ],
+      temperature: isSensitive ? 0.3 : 0.7
+    };
+
+    const data = await cobaGroqDenganBanyakKey(body);
+    output.removeChild(loadingDiv);
+
+    if (data.error) {
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "bubble bot";
+      errorDiv.textContent = "⚠️ Error: " + data.error.message;
+      output.appendChild(errorDiv);
       return;
     }
 
@@ -260,6 +389,7 @@
     history.push({ role: "assistant", content: reply });
     simpanRiwayat();
 
+    // --- Tampilkan balasan bot ---
     const botDiv = document.createElement("div");
     botDiv.className = "bubble bot";
     botDiv.innerHTML = formatMarkdownToHTML(reply);
@@ -276,6 +406,7 @@
     speechSynthesis.speak(ucap);
   }
 
+  // --- Voice Recognition ---
   const recognition = window.SpeechRecognition || window.webkitSpeechRecognition
     ? new (window.SpeechRecognition || window.webkitSpeechRecognition)()
     : null;
@@ -333,7 +464,7 @@
     }
   }
 </script>
- 
+
 
 </body>
 </html>
