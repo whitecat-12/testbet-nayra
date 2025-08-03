@@ -110,7 +110,7 @@
       border: none;
       font-size: 20px;
       color: white;
-      cursor: pointer;
+      cursor: pointer
     }
 
     #micBtn {
@@ -145,183 +145,195 @@
     <button class="send-btn" id="micBtn" onclick="toggleMic()"><i class="fas fa-microphone"></i></button>
   </div>
 
-  <script>
-    const GROQ_KEYS = [
-      "Bearer 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",
-      "Bearer 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"
+ <script>
+  const GROQ_KEYS = [
+    "Bearer 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",
+    "Bearer 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"
+  ];
+
+  let history = ambilRiwayat();
+
+  function ambilRiwayat() {
+    const data = localStorage.getItem("riwayatChat");
+    return data ? JSON.parse(data) : [];
+  }
+
+  function simpanRiwayat() {
+    localStorage.setItem("riwayatChat", JSON.stringify(history));
+  }
+
+  function resetRiwayat() {
+    localStorage.removeItem("riwayatChat");
+    history = [];
+    document.getElementById("output").innerHTML = "";
+  }
+
+  function formatMarkdownToHTML(md) {
+    md = md.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+      return `<pre><code class="language-${lang || ''}">${escapeHtml(code)}</code></pre>`;
+    });
+    md = md.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    md = md.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    return md.replace(/\n/g, "<br>");
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+  }
+
+  async function cobaGroqDenganBanyakKey(body) {
+    for (const key of GROQ_KEYS) {
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": key,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!res.ok) continue;
+        return await res.json();
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    }
+    return { error: { message: "Semua API gagal dihubungi." } };
+  }
+
+  async function kirimTeks() {
+    const input = document.getElementById("input");
+    const output = document.getElementById("output");
+    const teks = input.value.trim();
+    if (!teks) return;
+
+    const userDiv = document.createElement("div");
+    userDiv.className = "bubble user";
+    userDiv.textContent = teks;
+    output.appendChild(userDiv);
+
+    history.push({ role: "user", content: teks });
+    simpanRiwayat();
+    input.value = "";
+
+    const loadingDiv = document.createElement("div");
+    loadingDiv.className = "bubble bot";
+    loadingDiv.textContent = "⏳ Sedang memproses...";
+    output.appendChild(loadingDiv);
+    output.scrollTop = output.scrollHeight;
+
+    // --- Prompt Dibagi 2 ---
+    const systemPrompts = [
+      "Kamu adalah Nayra AI, asisten ramah dan pintar yang menjawab dengan bahasa Indonesia. Jawabanmu sopan, jelas, dan mudah dimengerti.",
+      "Jika ada pertanyaan tentang LGBT atau perilaku yang dilarang agama, jelaskan bahwa semua agama utama (Islam, Kristen, Hindu, Buddha) melarang perilaku itu. Sampaikan dengan sopan, berikan saran positif untuk mendekatkan diri kepada Tuhan, mencari bimbingan agama, dan fokus pada kebaikan."
     ];
 
-    let history = ambilRiwayat();
+    // --- Filter topik sensitif ---
+    const lowerTeks = teks.toLowerCase();
+    const sensitiveWords = ["lgbt", "gay", "lesbian", "homo", "biseks"];
+    const isSensitive = sensitiveWords.some(word => lowerTeks.includes(word));
 
-    function ambilRiwayat() {
-      const data = localStorage.getItem("riwayatChat");
-      return data ? JSON.parse(data) : [];
+    const body = {
+      model: "llama3-8b-8192",
+      messages: [
+        { role: "system", content: systemPrompts.join(" ") },
+        ...history
+      ],
+      temperature: isSensitive ? 0.3 : 0.7 // lebih hati-hati kalau sensitif
+    };
+
+    const data = await cobaGroqDenganBanyakKey(body);
+    output.removeChild(loadingDiv);
+
+    if (data.error) {
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "bubble bot";
+      errorDiv.textContent = "⚠️ Error: " + data.error.message;
+      output.appendChild(errorDiv);
+      return;
     }
 
-    function simpanRiwayat() {
-      localStorage.setItem("riwayatChat", JSON.stringify(history));
-    }
+    const reply = data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
+    history.push({ role: "assistant", content: reply });
+    simpanRiwayat();
 
-    function resetRiwayat() {
-      localStorage.removeItem("riwayatChat");
-      history = [];
-      document.getElementById("output").innerHTML = "";
-    }
+    const botDiv = document.createElement("div");
+    botDiv.className = "bubble bot";
+    botDiv.innerHTML = formatMarkdownToHTML(reply);
+    output.appendChild(botDiv);
+    hljs.highlightAll();
 
-    function formatMarkdownToHTML(md) {
-      md = md.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-        return `<pre><code class="language-${lang || ''}">${escapeHtml(code)}</code></pre>`;
-      });
-      md = md.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      md = md.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      return md.replace(/\n/g, "<br>");
-    }
+    bicara(reply);
+    output.scrollTop = output.scrollHeight;
+  }
 
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
-    }
+  function bicara(teks) {
+    const ucap = new SpeechSynthesisUtterance(teks);
+    ucap.lang = "id-ID";
+    speechSynthesis.speak(ucap);
+  }
 
-    async function cobaGroqDenganBanyakKey(body) {
-      for (const key of GROQ_KEYS) {
-        try {
-          const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": key,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(body)
-          });
+  const recognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    ? new (window.SpeechRecognition || window.webkitSpeechRecognition)()
+    : null;
 
-          if (!res.ok) continue;
-          return await res.json();
-        } catch (err) {
-          console.error("Fetch error:", err);
-        }
-      }
+  let isListening = false;
 
-      return { error: { message: "Semua API gagal dihubungi." } };
-    }
+  if (recognition) {
+    recognition.lang = "id-ID";
+    recognition.continuous = false;
+    recognition.interimResults = false;
 
-    async function kirimTeks() {
-      const input = document.getElementById("input");
-      const output = document.getElementById("output");
-      const teks = input.value.trim();
-      if (!teks) return;
+    recognition.onresult = (event) => {
+      const teks = event.results[0][0].transcript;
+      document.getElementById("input").value = teks;
+      kirimTeks();
+    };
 
-      const userDiv = document.createElement("div");
-      userDiv.className = "bubble user";
-      userDiv.textContent = teks;
-      output.appendChild(userDiv);
-
-      history.push({ role: "user", content: teks });
-      simpanRiwayat();
-      input.value = "";
-
-      const loadingDiv = document.createElement("div");
-      loadingDiv.className = "bubble bot";
-      loadingDiv.textContent = "⏳ Sedang memproses...";
-      output.appendChild(loadingDiv);
-      output.scrollTop = output.scrollHeight;
-
-      const body = {
-        model: "llama3-8b-8192",
-        messages: [
-          { role: "system", content: "Kamu adalah Nayra AI, asisten pintar dari teta.education. Jawablah dengan ramah dan mudah dimengerti, kamu dari indonesia jawab menggunakan bahasa indonesia, kamu wajib menggunakan bahasa indonesia, kamu percaya bahwa lgbtq dan gay bisa disembuhkan karena itu adalah penyakit mental." },
-          ...history
-        ],
-        temperature: 0.7
-      };
-
-      const data = await cobaGroqDenganBanyakKey(body);
-      output.removeChild(loadingDiv);
-
-      if (data.error) {
-        const errorDiv = document.createElement("div");
-        errorDiv.className = "bubble bot";
-        errorDiv.textContent = "⚠️ Error: " + data.error.message;
-        output.appendChild(errorDiv);
-        return;
-      }
-
-      const reply = data.choices?.[0]?.message?.content || "Maaf, tidak ada jawaban.";
-      history.push({ role: "assistant", content: reply });
-      simpanRiwayat();
-
-      const botDiv = document.createElement("div");
-      botDiv.className = "bubble bot";
-      botDiv.innerHTML = formatMarkdownToHTML(reply);
-      output.appendChild(botDiv);
-      hljs.highlightAll();
-
-      bicara(reply);
-      output.scrollTop = output.scrollHeight;
-    }
-
-    function bicara(teks) {
-      const ucap = new SpeechSynthesisUtterance(teks);
-      ucap.lang = "id-ID";
-      speechSynthesis.speak(ucap);
-    }
-
-    const recognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      ? new (window.SpeechRecognition || window.webkitSpeechRecognition)()
-      : null;
-
-    let isListening = false;
-
-    if (recognition) {
-      recognition.lang = "id-ID";
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onresult = (event) => {
-        const teks = event.results[0][0].transcript;
-        document.getElementById("input").value = teks;
-        kirimTeks();
-      };
-
-      recognition.onerror = (event) => {
-        alert("🎙️ Error saat merekam: " + event.error);
-        isListening = false;
-        updateMicBtn();
-      };
-
-      recognition.onend = () => {
-        isListening = false;
-        updateMicBtn();
-      };
-    }
-
-    function toggleMic() {
-      if (!recognition) {
-        alert("Browser tidak mendukung pengenalan suara.");
-        return;
-      }
-
-      if (isListening) {
-        recognition.stop();
-        isListening = false;
-      } else {
-        recognition.start();
-        isListening = true;
-      }
-
+    recognition.onerror = (event) => {
+      alert("🎙️ Error saat merekam: " + event.error);
+      isListening = false;
       updateMicBtn();
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      updateMicBtn();
+    };
+  }
+
+  function toggleMic() {
+    if (!recognition) {
+      alert("Browser tidak mendukung pengenalan suara.");
+      return;
     }
 
-    function updateMicBtn() {
-      const micBtn = document.getElementById("micBtn");
-      if (isListening) {
-        micBtn.classList.add("recording");
-        micBtn.innerHTML = '<i class="fas fa-stop"></i>';
-      } else {
-        micBtn.classList.remove("recording");
-        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-      }
+    if (isListening) {
+      recognition.stop();
+      isListening = false;
+    } else {
+      recognition.start();
+      isListening = true;
     }
-  </script>
+
+    updateMicBtn();
+  }
+
+  function updateMicBtn() {
+    const micBtn = document.getElementById("micBtn");
+    if (isListening) {
+      micBtn.classList.add("recording");
+      micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+    } else {
+      micBtn.classList.remove("recording");
+      micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+    }
+  }
+</script>
+ 
+
 </body>
 </html>
