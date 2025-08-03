@@ -236,104 +236,6 @@
       };
 
       const data = await cobaGroqDenganBanyakKey(body);
-<script>
-    const GROQ_KEYS = [
-      "Bearer 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",
-      "Bearer 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"
-    ];
-
-    let history = ambilRiwayat();
-
-    function ambilRiwayat() {
-      const data = localStorage.getItem("riwayatChat");
-      return data ? JSON.parse(data) : [];
-    }
-
-    function simpanRiwayat() {
-      localStorage.setItem("riwayatChat", JSON.stringify(history));
-    }
-
-    function resetRiwayat() {
-      localStorage.removeItem("riwayatChat");
-      history = [];
-      document.getElementById("output").innerHTML = "";
-    }
-
-    function formatMarkdownToHTML(md) {
-      md = md.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-        return `<pre><code class="language-${lang || ''}">${escapeHtml(code)}</code></pre>`;
-      });
-      md = md.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      md = md.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      return md.replace(/\n/g, "<br>");
-    }
-
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
-    }
-
-    async function cobaGroqDenganBanyakKey(body) {
-      for (const key of GROQ_KEYS) {
-        try {
-          const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": key,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(body)
-          });
-
-          if (!res.ok) continue;
-          return await res.json();
-        } catch (err) {
-          console.error("Fetch error:", err);
-        }
-      }
-
-      return { error: { message: "Semua API gagal dihubungi." } };
-    }
-
-    async function kirimTeks() {
-      const input = document.getElementById("input");
-      const output = document.getElementById("output");
-      const teks = input.value.trim();
-      if (!teks) return;
-
-      const userDiv = document.createElement("div");
-      userDiv.className = "bubble user";
-      userDiv.textContent = teks;
-      output.appendChild(userDiv);
-
-      history.push({ role: "user", content: teks });
-      simpanRiwayat();
-      input.value = "";
-
-      const loadingDiv = document.createElement("div");
-      loadingDiv.className = "bubble bot";
-      loadingDiv.textContent = "⏳ Sedang memproses...";
-      output.appendChild(loadingDiv);
-      output.scrollTop = output.scrollHeight;
-
-      // Deteksi apakah user ingin bahasa Inggris
-      const isEnglish = /english|in english|jawab.*inggris/i.test(teks) || /^[a-z0-9\s.,!?'"-]+$/.test(teks);
-
-      const systemPrompt = isEnglish
-        ? "You are Nayra AI, a friendly assistant from teta.education. Reply in clear and polite English."
-        : "Kamu adalah Nayra AI, asisten pintar dari teta.education. Jawablah dengan Bahasa Indonesia yang ramah, jelas, dan mudah dimengerti.";
-
-      const body = {
-        model: "llama3-8b-8192",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...history
-        ],
-        temperature: 0.7
-      };
-
-      const data = await cobaGroqDenganBanyakKey(body);
       output.removeChild(loadingDiv);
 
       if (data.error) {
@@ -354,13 +256,13 @@
       output.appendChild(botDiv);
       hljs.highlightAll();
 
-      bicara(reply, isEnglish);
+      bicara(reply);
       output.scrollTop = output.scrollHeight;
     }
 
-    function bicara(teks, isEnglish = false) {
+    function bicara(teks) {
       const ucap = new SpeechSynthesisUtterance(teks);
-      ucap.lang = isEnglish ? "en-US" : "id-ID";
+      ucap.lang = "id-ID";
       speechSynthesis.speak(ucap);
     }
 
@@ -420,7 +322,6 @@
         micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
       }
     }
-</script>
-
+  </script>
 </body>
 </html>
