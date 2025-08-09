@@ -19,6 +19,7 @@
       flex-direction: column;
     }
 
+    /* ===== TOP BAR ===== */
     .top-bar {
       height: 50px;
       display: flex;
@@ -39,6 +40,42 @@
       font-size: 14px;
     }
 
+    /* ===== SIDEBAR MENU ===== */
+    .sidebar {
+      height: 100%;
+      width: 0;
+      position: fixed;
+      z-index: 100;
+      top: 0;
+      left: 0;
+      background-color: #2b2b2b;
+      overflow-x: hidden;
+      transition: 0.3s;
+      padding-top: 60px;
+    }
+
+    .sidebar a {
+      padding: 10px 20px;
+      text-decoration: none;
+      font-size: 18px;
+      color: #fff;
+      display: block;
+      transition: 0.2s;
+    }
+
+    .sidebar a:hover {
+      background-color: #444;
+    }
+
+    .sidebar .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 25px;
+      cursor: pointer;
+    }
+
+    /* ===== CHAT MAIN AREA ===== */
     .main {
       flex: 1;
       overflow-y: auto;
@@ -74,6 +111,7 @@
       background-color: #2d2d2d;
     }
 
+    /* ===== INPUT BAR ===== */
     .input-bar {
       display: flex;
       align-items: center;
@@ -110,7 +148,7 @@
       border: none;
       font-size: 20px;
       color: white;
-      cursor: pointer
+      cursor: pointer;
     }
 
     #micBtn {
@@ -125,16 +163,28 @@
   </style>
 </head>
 <body>
+
+  <!-- ===== SIDEBAR ===== -->
+  <div id="mySidebar" class="sidebar">
+    <span class="close-btn" onclick="closeSidebar()">&times;</span>
+    <a href="index.html">🏠 Beranda</a>
+    <a href="3d-avatar.html">🧍‍♂️ 3D Avatar</a>
+    <a href="settings.html">⚙️ Pengaturan</a>
+  </div>
+
+  <!-- ===== TOP BAR ===== -->
   <div class="top-bar">
-    <i class="fas fa-bars"></i>
+    <i class="fas fa-bars" onclick="openSidebar()"></i>
     <button><i class="fas fa-robot"></i> Nayra AI</button>
     <i class="fas fa-rotate-right" onclick="resetRiwayat()" title="Reset"></i>
   </div>
 
+  <!-- ===== MAIN CHAT ===== -->
   <div class="main">
     <div id="output"></div>
   </div>
 
+  <!-- ===== INPUT ===== -->
   <div class="input-bar">
     <div class="input-container">
       <i class="fas fa-plus"></i>
@@ -145,7 +195,16 @@
     <button class="send-btn" id="micBtn" onclick="toggleMic()"><i class="fas fa-microphone"></i></button>
   </div>
 
- <script>
+  <!-- ===== SIDEBAR SCRIPT ===== -->
+  <script>
+    function openSidebar() {
+      document.getElementById("mySidebar").style.width = "250px";
+    }
+
+    function closeSidebar() {
+      document.getElementById("mySidebar").style.width = "0";
+    }
+
   const GROQ_KEYS = [
     "Bearer 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",
     "Bearer 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"
