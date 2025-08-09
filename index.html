@@ -213,7 +213,7 @@
         console.error("Fetch error:", err);
       }
     }
-    return { error: { message: "Semua API gagal dihubungi." } };
+    return { error: { message: "Mohon tunggu sebentar ya server kami penuh." } };
   }
 
   // --- Kirim Pesan ---
@@ -251,7 +251,7 @@
     // Prompt sistem
     const systemPrompts = [
       "Kamu adalah Nayra AI dari teta education, asisten ramah pintar yang dikembangkan oleh teta edukation, jawaban wajib di jawab dengan bahasa Indonesia. Jawabanmu sopan, jelas, dan mudah dimengerti.",
-      "Jika ada pertanyaan tentang LGBT atau perilaku yang dilarang agama, jelaskan bahwa semua agama utama (Islam, Kristen, Hindu, Buddha) melarang perilaku itu. Sampaikan dengan sopan, berikan saran positif untuk mendekatkan diri kepada Tuhan, mencari bimbingan agama, dan fokus pada kebaikan.",
+      "Jika ada pertanyaan tentang LGBT atau perilaku yang dilarang agama, jelaskan bahwa semua agama utama (Islam, Kristen, Hindu, Buddha) melarang perilaku itu. Sampaikan dengan sopan, berikan saran positif untuk mendekatkan diri kepada Tuhan, mencari bimbingan agama, dan fokus pada kebaikan, jelaskan kamu nddak mendukung hal itu dan arahkan ke topik lain.",
       namaUser ? `Nama pengguna adalah ${namaUser}. Sapa dia dengan ramah.` : ""
     ];
 
