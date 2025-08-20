@@ -9,167 +9,175 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
   <style>
-    body {
-      margin: 0;
-      background-color: #1e1e1e;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+  body {
+    margin: 0;
+    background-color: #ffffff;
+    color: #000000;
+    font-family: 'Segoe UI', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
 
-    /* ===== TOP BAR ===== */
-    .top-bar {
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 12px;
-      background-color: #1e1e1e;
-      border-bottom: 1px solid #333;
-    }
+  /* ===== TOP BAR ===== */
+  .top-bar {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    background-color: #6f42c1; /* ungu */
+    color: white;
+    border-bottom: 1px solid #ccc;
+  }
 
-    .top-bar button {
-      background-color: #3f3f3f;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 20px;
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
-    }
+  .top-bar button {
+    background-color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    color: #6f42c1;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+  }
 
-    /* ===== SIDEBAR MENU ===== */
-    .sidebar {
-      height: 100%;
-      width: 0;
-      position: fixed;
-      z-index: 100;
-      top: 0;
-      left: 0;
-      background-color: #2b2b2b;
-      overflow-x: hidden;
-      transition: 0.3s;
-      padding-top: 60px;
-    }
+  /* ===== SIDEBAR MENU ===== */
+  .sidebar {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    z-index: 100;
+    top: 0;
+    left: 0;
+    background-color: #f8f0ff; /* ungu sangat muda */
+    overflow-x: hidden;
+    transition: 0.3s;
+    padding-top: 60px;
+  }
 
-    .sidebar a {
-      padding: 10px 20px;
-      text-decoration: none;
-      font-size: 18px;
-      color: #fff;
-      display: block;
-      transition: 0.2s;
-    }
+  .sidebar a {
+    padding: 10px 20px;
+    text-decoration: none;
+    font-size: 18px;
+    color: #6f42c1;
+    display: block;
+    transition: 0.2s;
+  }
 
-    .sidebar a:hover {
-      background-color: #444;
-    }
+  .sidebar a:hover {
+    background-color: #e5d4ff;
+  }
 
-    .sidebar .close-btn {
-      position: absolute;
-      top: 10px;
-      right: 15px;
-      font-size: 25px;
-      cursor: pointer;
-    }
+  .sidebar .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 25px;
+    cursor: pointer;
+    color: #6f42c1;
+  }
 
-    /* ===== CHAT MAIN AREA ===== */
-    .main {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+  /* ===== CHAT MAIN AREA ===== */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #ffffff;
+  }
 
-    #output {
-      width: 100%;
-      max-width: 700px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+  #output {
+    width: 100%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
-    .bubble {
-      padding: 10px 14px;
-      border-radius: 16px;
-      max-width: 80%;
-      word-wrap: break-word;
-      line-height: 1.4;
-    }
+  .bubble {
+    padding: 10px 14px;
+    border-radius: 16px;
+    max-width: 80%;
+    word-wrap: break-word;
+    line-height: 1.4;
+  }
 
-    .user {
-      align-self: flex-end;
-      background-color: #3a3a3a;
-    }
+  .user {
+    align-self: flex-end;
+    background-color: #6f42c1;
+    color: white;
+  }
 
-    .bot {
-      align-self: flex-start;
-      background-color: #2d2d2d;
-    }
+  .bot {
+    align-self: flex-start;
+    background-color: #f3e8ff; /* ungu muda */
+    color: #000000;
+  }
 
-    /* ===== INPUT BAR ===== */
-    .input-bar {
-      display: flex;
-      align-items: center;
-      padding: 10px;
-      background-color: #2b2b2b;
-      border-top: 1px solid #444;
-    }
+  /* ===== INPUT BAR ===== */
+  .input-bar {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: #f8f0ff;
+    border-top: 1px solid #ccc;
+  }
 
-    .input-container {
-      display: flex;
-      align-items: center;
-      background-color: #1e1e1e;
-      border-radius: 20px;
-      flex: 1;
-      padding: 8px 12px;
-      margin-right: 10px;
-    }
+  .input-container {
+    display: flex;
+    align-items: center;
+    background-color: white;
+    border-radius: 20px;
+    flex: 1;
+    padding: 8px 12px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+  }
 
-    .input-container i {
-      margin-right: 8px;
-      color: #ccc;
-    }
+  .input-container i {
+    margin-right: 8px;
+    color: #6f42c1;
+  }
 
-    .input-container input {
-      background: transparent;
-      border: none;
-      outline: none;
-      color: white;
-      flex: 1;
-    }
+  .input-container input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: black;
+    flex: 1;
+  }
 
-    .send-btn {
-      background: none;
-      border: none;
-      font-size: 20px;
-      color: white;
-      cursor: pointer;
-    }
+  .send-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #6f42c1;
+    cursor: pointer;
+  }
 
-    #micBtn {
-      margin-left: 5px;
-      font-size: 20px;
-      transition: color 0.2s ease;
-    }
+  #micBtn {
+    margin-left: 5px;
+    font-size: 20px;
+    transition: color 0.2s ease;
+  }
 
-    #micBtn.recording {
-      color: red;
-    }
-  </style>
+  #micBtn.recording {
+    color: red;
+  }
+</style>
+
 </head>
 <body>
 
   <!-- ===== SIDEBAR ===== -->
   <div id="mySidebar" class="sidebar">
-    <span class="close-btn" onclick="closeSidebar()">&times;</span>
-    <a href="index.html">🏠 Beranda</a>
-    <a href="3d-avatar.html">🧍‍♂️ 3D Avatar</a>
-    <a href="settings.html">⚙️ Pengaturan</a>
+  <span class="close-btn" onclick="closeSidebar()">&times;</span>
+  
+  <a href="../index2.html"><i class="fas fa-home"></i> Beranda</a>
+  <a href="3davatar.html"><i class="fas fa-user"></i> 3D Avatar</a>
   </div>
 
   <!-- ===== TOP BAR ===== -->
@@ -206,8 +214,8 @@
     }
 
   const GROQ_KEYS = [
-    "Bearer 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",
-    "Bearer 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"
+    "Bearer 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",
+    "Bearer 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"
   ];
 
   let history = ambilRiwayat();
